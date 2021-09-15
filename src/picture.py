@@ -27,7 +27,7 @@ class Sphere:
         self.center = center # determines where in the 3D world the center of the sphere exists
         self.radius = radius
         #self.color = color
-
+        
 class Camera:
     def __init__(self, origin, viewport_width, viewport_height, focal_length):
         self.origin = origin
@@ -55,7 +55,8 @@ def main():
     origin = np.array([0,0,1])
     camera = Camera(origin, viewport_width, viewport_height, 1.0)
 
-    scene_objects = [ Sphere(np.array([-0.2, 0., -1]), 0.5), Sphere(np.array([0.1, -0.3, 0.]), 0.2)]
+    scene_objects = [ Sphere(np.array([-0.2, 0., -1]), 0.5),
+                      Sphere(np.array([0.1, -0.3, 0.]), 0.2)]
 
     # A pixel-array with 3 values for each pixel (RGB)
     # Essential this is a Width x Height with a depth of 3
@@ -67,7 +68,7 @@ def main():
         
     running = True
 
-    # Init progress text
+    # Init font for progress text
     font = pygame.font.Font(None, 21)
 
     render = True
@@ -81,28 +82,32 @@ def main():
         if render:
             # y_index and x_index are indices used for the pixel array and y and x are the viewport coordinates 
             for y_index, y in enumerate(np.linspace(viewport[1], viewport[3], HEIGHT)):
+                if (y_index+1) % 10 == 0:
+                    percentage = ((y_index+1) / (HEIGHT)) * 100
+                    progress = "Progress: " + '{:.2f}'.format(percentage) + "%"
+                    text = font.render(progress, False, (y_index/(WIDTH-1)*255, 30, 255), (0,0,0))
+                    textpos = text.get_rect(centerx=MARGIN/2 + 60, centery=MARGIN/2 - 15)
+                    framebuffer.blit(text, textpos)
+                    pygame.display.update()
+                    
                 for x_index, x in enumerate(np.linspace(viewport[0], viewport[2], WIDTH)):
-                    if y_index % 10 == 0:
-                        percentage = (y_index / WIDTH) * 100
-                        progress = "Progress: " + '{:.2f}'.format(percentage) + "%"
-                        text = font.render(progress, False, (255, 255, 255), (0,0,0))
-                        textpos = text.get_rect(centerx=MARGIN/2 + 60, centery=MARGIN/2 - 15)
-                        framebuffer.blit(text, textpos)
-                        pygame.display.update()
-
-
                     pixel = np.array([x,y,0])
-                    direction = normalize(pixel - origin) # figure out where the ray is be going                 
+                    direction = normalize(pixel - origin) # figure out the direction of the ray
                     ray = Ray(origin, direction)
                     
                     y_dir = ray.direction[1]
-                    backbuffer[x_index, y_index] = np.array([np.abs(y_dir)*255, 30, 255])
+                    backbuffer[x_index, y_index] = np.array([0.5*(y_dir+1)*255, 30, 255])
 
+            
             temp_framebuffer = pygame.surfarray.make_surface(backbuffer)
             framebuffer.blit(temp_framebuffer, ( (MARGIN/2, MARGIN/2) )) # second parameter centers our viewport
+            pygame.display.update()
+                        
+
+            
 
             # render update
-            pygame.display.update()
+            #pygame.display.update()
         render = False
 
     
