@@ -1,11 +1,16 @@
 from time import perf_counter
 import pygame
 import numpy as np
+import argparse
 
-WIDTH = 600
-HEIGHT = 400
+WIDTH = 300
+HEIGHT = 200
 MARGIN = 200
 MAX_DEPTH = 2
+
+# get a value between a and b depending on t (or just get a or b)
+def lerp(a, b, t):
+    return (1-t) * a + t * b
 
 def normalize(vec):
     # divides each component of vec with its length, normalizing it
@@ -21,21 +26,18 @@ class Ray:
         return origin + (coefficient*direction)
 
 # treat sphere intersection as a quadratic function to solve, f = ax^2 + bx + c
-# returns true if we have at least one intersection
 def sphere_intersection(ray, sphere):
     rD = ray.direction
     rO = ray.origin
     sC = sphere.center
     sR = sphere.radius
 
-    a = 1 # a = ||rD|| = 1 
+    a = 1 # a = ||rD|| = 1
     b = 2 * np.dot(rD, rO-sC) # b = 2 * rD (rO - sC)
     c = np.linalg.norm(rO - sC) ** 2 - sR ** 2 # (rO - sC)^2 - sR^2
     discriminant = (b**2) - (4*a*c)
-    
-    return (discriminant > 0)
-    #if (discriminant > 0):
-        
+
+    return (discriminant>0, (a,b,c,discriminant))
         
 class Sphere:
     def __init__(self, center, radius):
@@ -53,6 +55,19 @@ class Camera:
         self.lower_left_corner = self.origin - self.horizontal/2 - self.vertical/2 - np.array([0, 0, focal_length])
     
 def main():
+
+    parser = argparse.ArgumentParser(description="A ray tracing program")
+    parser.add_argument('-width', metavar='w', type=int, help="Width")
+    parser.add_argument('-height', metavar='h', type=int, help="Height")
+    args = parser.parse_args()
+
+    if args.width:
+        global WIDTH
+        WIDTH = args.width
+    if args.height:
+        global HEIGHT
+        HEIGHT = args.height
+    
     pygame.init()
 
     aspect_ratio = float(WIDTH/HEIGHT) # 3:2 aspect ratio for now
@@ -108,24 +123,25 @@ def main():
                     pygame.display.update()
                     
                 for x_index, x in enumerate(np.linspace(viewport[0], viewport[2], WIDTH)):
+                    
                     # Pygame seems to be using the origin at the upper left corner,
                     # so we have to make y negative in order to respect a right-handed coordinate system (3D)
                     pixel = np.array([x,-y,0]) 
                     direction = normalize(pixel - origin) # figure out the direction of the ray
-                    ray = Ray(origin, direction)
+                    primary_ray = Ray(origin, direction)
 
                     sphere_hit = False
-                    for i in range(0, 2):
-                        sphere_hit = sphere_intersection(ray, scene_objects[i])
+                    for i in range(0, 1):
+                        sphere_hit, variables = sphere_intersection(primary_ray, scene_objects[i])
                         if sphere_hit:
                             break
                     
-                    y_dir = ray.direction[1]
+                    y_dir = (1 + primary_ray.direction[1]) * 0.5 # do some math to get a value between 0 and 1 depending on where at the y-axis we're looking
 
-                    color = np.array([0.5*(y_dir+1)*255, 30, 255])
+                    color = np.array([lerp(0, 255, y_dir) * 255, 30, 255]) # notice that we're multiplying the red color with 255, this gives a cool effect
 
                     if (sphere_hit):
-                        color = np.array([0.5*(y_dir+1)*255, 0, 0.5*(y_dir+1)*108])
+                        color = np.array([lerp(0, 255, y_dir), 0, lerp(0, 255, y_dir)])
                     
                     backbuffer[x_index, y_index] = color
 
