@@ -1,8 +1,9 @@
+from time import perf_counter
 import pygame
 import numpy as np
 
-WIDTH = 300
-HEIGHT = 200
+WIDTH = 600
+HEIGHT = 400
 MARGIN = 200
 MAX_DEPTH = 2
 
@@ -19,12 +20,26 @@ class Ray:
         # Coefficient is used to move the ray along a line in 3D space
         return origin + (coefficient*direction)
 
-def ray_color(ray):
-    pass
+# treat sphere intersection as a quadratic function to solve, f = ax^2 + bx + c
+# returns true if we have at least one intersection
+def sphere_intersection(ray, sphere):
+    rD = ray.direction
+    rO = ray.origin
+    sC = sphere.center
+    sR = sphere.radius
 
+    a = 1 # a = ||rD|| = 1 
+    b = 2 * np.dot(rD, rO-sC) # b = 2 * rD (rO - sC)
+    c = np.linalg.norm(rO - sC) ** 2 - sR ** 2 # (rO - sC)^2 - sR^2
+    discriminant = (b**2) - (4*a*c)
+    
+    return (discriminant > 0)
+    #if (discriminant > 0):
+        
+        
 class Sphere:
     def __init__(self, center, radius):
-        self.center = center # determines where in the 3D world the center of the sphere exists
+        self.center = center # 3D coordinates of sphere center
         self.radius = radius
         #self.color = color
         
@@ -55,8 +70,8 @@ def main():
     origin = np.array([0,0,1])
     camera = Camera(origin, viewport_width, viewport_height, 1.0)
 
-    scene_objects = [ Sphere(np.array([-0.2, 0., -1]), 0.5),
-                      Sphere(np.array([0.1, -0.3, 0.]), 0.2)]
+    scene_objects = [ Sphere(np.array([-0.5, -0.2, -1]), 0.5),
+                      Sphere(np.array([0.8, -0.3, -1]), 0.2)]
 
     # A pixel-array with 3 values for each pixel (RGB)
     # Essential this is a Width x Height with a depth of 3
@@ -78,8 +93,10 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-
+        
         if render:
+            start_counter = perf_counter()
+            
             # y_index and x_index are indices used for the pixel array and y and x are the viewport coordinates 
             for y_index, y in enumerate(np.linspace(viewport[1], viewport[3], HEIGHT)):
                 if (y_index+1) % 10 == 0:
@@ -91,23 +108,35 @@ def main():
                     pygame.display.update()
                     
                 for x_index, x in enumerate(np.linspace(viewport[0], viewport[2], WIDTH)):
-                    pixel = np.array([x,y,0])
+                    # Pygame seems to be using the origin at the upper left corner,
+                    # so we have to make y negative in order to respect a right-handed coordinate system (3D)
+                    pixel = np.array([x,-y,0]) 
                     direction = normalize(pixel - origin) # figure out the direction of the ray
                     ray = Ray(origin, direction)
+
+                    sphere_hit = False
+                    for i in range(0, 2):
+                        sphere_hit = sphere_intersection(ray, scene_objects[i])
+                        if sphere_hit:
+                            break
                     
                     y_dir = ray.direction[1]
-                    backbuffer[x_index, y_index] = np.array([0.5*(y_dir+1)*255, 30, 255])
+
+                    color = np.array([0.5*(y_dir+1)*255, 30, 255])
+
+                    if (sphere_hit):
+                        color = np.array([0.5*(y_dir+1)*255, 0, 0.5*(y_dir+1)*108])
+                    
+                    backbuffer[x_index, y_index] = color
 
             
             temp_framebuffer = pygame.surfarray.make_surface(backbuffer)
             framebuffer.blit(temp_framebuffer, ( (MARGIN/2, MARGIN/2) )) # second parameter centers our viewport
             pygame.display.update()
-                        
-
+            end_counter = perf_counter()
+            elapsed_seconds = (end_counter - start_counter)
+            print("It took", elapsed_seconds, "seconds to render") 
             
-
-            # render update
-            #pygame.display.update()
         render = False
 
     
