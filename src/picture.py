@@ -35,6 +35,7 @@ class Ray:
         self.origin = origin
         self.direction = direction
 
+
 # get a value between a and b depending on t (or just get a or b)
 def lerp(a, b, t):
     return (1-t) * a + t * b
@@ -42,11 +43,18 @@ def lerp(a, b, t):
 def normalize(vec):
     # divides each component of vec with its length, normalizing it
     return vec / np.linalg.norm(vec)
-
+    
+def progress_text(y_index, font):
+  percentage = ((y_index+1) / (HEIGHT)) * 100
+  progress = "Progress: " + '{:.2f}'.format(percentage) + "%"
+  color = (lerp(0, 255, y_index/(WIDTH-1)), 0, 255)
+  text = font.render(progress, False, color, (0,0,0))
+  textpos = text.get_rect(centerx=MARGIN/2 + 60, centery=MARGIN/2 - 15)
+  return (text, textpos)
     
 # treat sphere intersection as a quadratic function to solve, f = ax^2 + bx + c
 # https://en.wikipedia.org/wiki/Quadratic_equation#Quadratic_formula_and_its_derivation
-# return distance
+# returns closest intersection
 def sphere_intersection(ray, sphere):
     rD = ray.direction
     rO = ray.origin
@@ -63,6 +71,7 @@ def sphere_intersection(ray, sphere):
     b = 2 * np.dot(rD, rOsC) # b = 2 * rD (rO - sC)
     c = np.dot(rOsC, rOsC) - np.dot(sR, sR) # (rO - sC)^2 - sR^2, dot product with itself will square the vector
     discriminant = (b**2) - (4*c)
+    
     if discriminant < 0:
         # no solutions
         return -1.0
@@ -111,7 +120,7 @@ def intersect_objects(ray, objects):
         color = np.array([lerp(0, 255, ray_y), 0, lerp(0, 255, ray_y)])
 
     return color
-    
+
 
 def main():
     
@@ -147,7 +156,7 @@ def main():
     origin = np.array([0,0,1])
 
     # multi-array, first array is for spheres, second array for planes
-    scene_objects = [ [Sphere(np.array([.0, 0.5, -1]), 0.5),
+    scene_objects = [ [Sphere(np.array([.0, 0, -1]), 0.5),
                        Sphere(np.array([0.8, 0.5, -1]), 0.2)],
                       [Plane(np.array([.0, 1.0, 0.0]))]]
 
@@ -163,11 +172,7 @@ def main():
             # y_index and x_index are indices used for the pixel array and y and x are the viewport coordinates 
             for y_index, y in enumerate(np.linspace(viewport[1], viewport[3], HEIGHT)):
                 if (y_index+1) % 10 == 0:
-                    percentage = ((y_index+1) / (HEIGHT)) * 100
-                    progress = "Progress: " + '{:.2f}'.format(percentage) + "%"
-                    color = (lerp(0, 255, y_index/(WIDTH-1)), 0, 255)
-                    text = font.render(progress, False, color, (0,0,0))
-                    textpos = text.get_rect(centerx=MARGIN/2 + 60, centery=MARGIN/2 - 15)
+                    text, textpos = progress_text(y_index, font)
                     framebuffer.blit(text, textpos)
                     pygame.display.update()
                     
@@ -188,6 +193,7 @@ def main():
             temp_framebuffer = pygame.surfarray.make_surface(backbuffer)
             framebuffer.blit(temp_framebuffer, ( (MARGIN/2, MARGIN/2) )) # second parameter centers our viewport
             pygame.display.update()
+            
             end_counter = perf_counter()
             elapsed_seconds = (end_counter - start_counter)
             print("It took", elapsed_seconds, "seconds to render") 
