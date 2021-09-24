@@ -3,11 +3,13 @@ import pygame
 import numpy as np
 import argparse
 
+from utility import *
+from classes import *
+
 WIDTH = 300
 HEIGHT = 200
-MARGIN = 200
+INSET = 200
 MAX_DEPTH = 2
-
 
 parser = argparse.ArgumentParser(description="A ray tracing program")
 parser.add_argument('-width', metavar='w', type=int, help="Width")
@@ -19,48 +21,15 @@ if args.width:
   
 if args.height:
   HEIGHT = args.height
-        
-class Sphere:
-    def __init__(self, center, radius):
-        self.center = center # 3D coordinates of sphere center
-        self.radius = radius
-        #self.color = color
-
-class Plane:
-    def __init__(self, normal):
-        self.normal = normal
-
-class Ray:
-    def __init__(self, origin, direction):
-        self.origin = origin
-        self.direction = direction
-
-
-# get a value between a and b depending on t (or just get a or b)
-def lerp(a, b, t):
-    return (1-t) * a + t * b
-
-def normalize(vec):
-    # divides each component of vec with its length, normalizing it
-    return vec / np.linalg.norm(vec)
-    
-def progress_text(y_index, font):
-  percentage = ((y_index+1) / (HEIGHT)) * 100
-  progress = "Progress: " + '{:.2f}'.format(percentage) + "%"
-  color = (lerp(0, 255, y_index/(WIDTH-1)), 0, 255)
-  text = font.render(progress, False, color, (0,0,0))
-  textpos = text.get_rect(centerx=MARGIN/2 + 60, centery=MARGIN/2 - 15)
-  return (text, textpos)
     
 # treat sphere intersection as a quadratic function to solve, f = ax^2 + bx + c
 # https://en.wikipedia.org/wiki/Quadratic_equation#Quadratic_formula_and_its_derivation
-# returns closest intersection
 def sphere_intersection(ray, sphere):
     rD = ray.direction
     rO = ray.origin
     sC = sphere.center
     sR = sphere.radius
-    rOsC = rO-sC # origin - sphere center gives us where the sphere center will be located relative to ray origin
+    rOsC = rO-sC # origin - sphere
     unit_rOsC = normalize(rOsC)
 
     # determines if the ray direction is looking at the sphere, temporary code
@@ -81,25 +50,35 @@ def sphere_intersection(ray, sphere):
         d1 = (-b + np.sqrt(discriminant)) / 2
         d2 = (-b - np.sqrt(discriminant)) / 2
         if d1 > 0 and d2 > 0:
-            return min(d1, d2)
-
+            return min(d1, d2)          
+          
 def plane_intersection(ray, plane):
     rD = ray.direction
     rO = ray.origin
-    p_normal = plane.normal
-
-    # adding + 1 for now, otherwise d will always be 0
-    d = -(np.dot(rO, p_normal) + 1) / np.dot(rD, p_normal)
-
-    return d > 0
-
-def intersect_objects(ray, objects):
     
-    spheres = objects[0]
-    planes = objects[1]
+    pN = plane.normal
+    pO = plane.origin
 
+    #d = -(np.dot(rO, pN) + 1) / np.dot(rD, pN)
+
+    rOY = rO[1] # ray origin y component 
+    pOY = pO[1] # plane origin y component
+    rDY = rD[1] # ray direction y component
+    
+    d = -((rOY - pOY) / rDY)
+    if d > 0 and d < 1e6:
+      return rO + (rD * d) # the ray vector that now intersects with a point on the plane
+
+    return None
+  
+def intersect_objects(ray, scene_objects, x,y):
+    
+    spheres = scene_objects[0]
+    planes = scene_objects[1]
+    
     # only 1 plane for now
-    plane_hit = plane_intersection(ray, planes[0])
+    plane = planes[0]
+    hit_vector = plane_intersection(ray, plane)
 
     sphere_hit = False
     for sphere in spheres:
@@ -111,12 +90,26 @@ def intersect_objects(ray, objects):
 
     ray_y = (1 + ray.direction[1]) * 0.5 # do some math to get a value between 0 and 1 depending on where at the y-axis we're looking
 
-    color = np.array([lerp(0, 255, ray_y)*255, 30, 255]) # notice that we're multiplying the red color with 255, this gives a cool effect
+    # starting with background color
+    # notice that we're multiplying the red color with 255, this gives a cool effect
+    color = np.array([lerp(0, 255, ray_y), 30, 255]) 
 
-    if plane_hit:
-        color = np.array([lerp(0, 255, ray_y), lerp(0, 255, ray_y), lerp(0, 255, ray_y)])
+    if hit_vector is not None:
+      # checkerboard pattern logic borrowed from here:
+      # https://github.com/carl-vbn/pure-java-raytracer/blob/23300fca6e9cb6eb0a830c0cd875bdae56734eb7/src/carlvbn/raytracing/solids/Plane.java#L32
+      
+      point = hit_vector - plane.origin # a point sitting on the plane
+      pX = int(point[0])
+      pZ = int(point[2])
 
-    if (sphere_hit):
+      # for every other x and z position that is even, color the pixel white, otherwise gray/black
+      if ((pX % 2 == 0) == (pZ % 2 == 0)):
+        color = np.array([255,255,255])
+      else:
+        color = np.array([30,30,30])
+       
+          
+    if sphere_hit:
         color = np.array([lerp(0, 255, ray_y), 0, lerp(0, 255, ray_y)])
 
     return color
@@ -147,18 +140,23 @@ def main():
     # PyGame will read the backbuffer as [X, Y], hence why WIDTH is being used to determine the rows of the matrix
     backbuffer = np.zeros((WIDTH, HEIGHT, 3))
                
-    framebuffer = pygame.display.set_mode((WIDTH + MARGIN, HEIGHT + MARGIN))
+    framebuffer = pygame.display.set_mode((WIDTH + INSET, HEIGHT + INSET))
     pygame.display.set_caption("Backwards ray-tracing")
 
     render = True
     running = True
-    
+
+    # ray origin
     origin = np.array([0,0,1])
 
-    # multi-array, first array is for spheres, second array for planes
-    scene_objects = [ [Sphere(np.array([.0, 0, -1]), 0.5),
-                       Sphere(np.array([0.8, 0.5, -1]), 0.2)],
-                      [Plane(np.array([.0, 1.0, 0.0]))]]
+    # multi-array, first array is for spheres, second array for planes, third for lights
+    scene_objects = []
+    scene_objects.append([Sphere(center=np.array([-0.25, 0, -0.15]), radius=0.5),
+                          Sphere(center=np.array([0.5, 0.16, 0]), radius=0.2)])
+    
+    scene_objects.append([Plane(origin=np.array([.0, -1.0 , .0]), normal=np.array([.0, 1.0, .0]))])
+    
+    scene_objects.append([np.array([-1.0 ,2.0, 0.5])])                      
 
     while running:
         
@@ -172,7 +170,7 @@ def main():
             # y_index and x_index are indices used for the pixel array and y and x are the viewport coordinates 
             for y_index, y in enumerate(np.linspace(viewport[1], viewport[3], HEIGHT)):
                 if (y_index+1) % 10 == 0:
-                    text, textpos = progress_text(y_index, font)
+                    text, textpos = progress_text(y_index, font, WIDTH, HEIGHT, INSET)
                     framebuffer.blit(text, textpos)
                     pygame.display.update()
                     
@@ -185,13 +183,13 @@ def main():
 
                     primary_ray = Ray(origin, direction)
 
-                    color = intersect_objects(primary_ray, scene_objects)
+                    color = intersect_objects(primary_ray, scene_objects, x_index, y_index)
                     
                     backbuffer[x_index, y_index] = color
 
             
             temp_framebuffer = pygame.surfarray.make_surface(backbuffer)
-            framebuffer.blit(temp_framebuffer, ( (MARGIN/2, MARGIN/2) )) # second parameter centers our viewport
+            framebuffer.blit(temp_framebuffer, ( (INSET/2, INSET/2) )) # second parameter centers our viewport
             pygame.display.update()
             
             end_counter = perf_counter()
