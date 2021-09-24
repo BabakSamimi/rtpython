@@ -75,11 +75,7 @@ def intersect_objects(ray, scene_objects, x,y):
     
     spheres = scene_objects[0]
     planes = scene_objects[1]
-    
-    # only 1 plane for now
-    plane = planes[0]
-    hit_vector = plane_intersection(ray, plane)
-
+   
     sphere_hit = False
     for sphere in spheres:
         distance = sphere_intersection(ray, sphere)
@@ -94,23 +90,28 @@ def intersect_objects(ray, scene_objects, x,y):
     # notice that we're multiplying the red color with 255, this gives a cool effect
     color = np.array([lerp(0, 255, ray_y), 30, 255]) 
 
-    if hit_vector is not None:
-      # checkerboard pattern logic borrowed from here:
-      # https://github.com/carl-vbn/pure-java-raytracer/blob/23300fca6e9cb6eb0a830c0cd875bdae56734eb7/src/carlvbn/raytracing/solids/Plane.java#L32
-      
-      point = hit_vector - plane.origin # a point sitting on the plane
-      pX = int(point[0])
-      pZ = int(point[2])
-
-      # for every other x and z position that is even, color the pixel white, otherwise gray/black
-      if ((pX % 2 == 0) == (pZ % 2 == 0)):
-        color = np.array([255,255,255])
-      else:
-        color = np.array([30,30,30])
-       
-          
     if sphere_hit:
         color = np.array([lerp(0, 255, ray_y), 0, lerp(0, 255, ray_y)])
+    else:
+       
+      # only 1 plane for now
+      plane = planes[0]
+      hit_vector = plane_intersection(ray, plane)
+       
+      if hit_vector is not None:
+        # checkerboard pattern logic borrowed from here:
+        # https://github.com/carl-vbn/pure-java-raytracer/blob/23300fca6e9cb6eb0a830c0cd875bdae56734eb7/src/carlvbn/raytracing/solids/Plane.java#L32
+
+        point = hit_vector - plane.origin # a point sitting on the plane
+        pX = int(point[0])
+        pZ = int(point[2])
+
+          # for every other x and z position that is even, color the pixel white, otherwise gray/black
+        if ((pX % 2 == 0) == (pZ % 2 == 0)):
+          color = np.array([255,255,255])
+        else:
+          color = np.array([30,30,30])
+
 
     return color
 
