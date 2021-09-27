@@ -1,4 +1,28 @@
 import numpy as np
+from pygame.locals import *
+
+def process_input(keys, origin):
+
+  if keys[K_w]:
+    origin[2] -= 0.1
+  elif keys[K_a]:
+    origin[0] -= 0.1
+  elif keys[K_s]:
+    origin[2] += 0.1
+  elif keys[K_d]:
+    origin[0] += 0.1
+  else:
+    return (False, origin)
+
+  return (True, origin)
+
+# normal = normal of the surface the ray hit
+def reflect(ray, normal):
+    # calculate how a ray gets reflected
+    # if the ray were to have the same "outgoing" angle
+    # as the "ingoing" angle.
+    # the result will be a reflected ray
+    return ray - 2*np.dot(ray, normal)*normal
 
 def xor(a, b):
     return bool(a) ^ bool(b)
