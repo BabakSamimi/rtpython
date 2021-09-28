@@ -1,6 +1,14 @@
 import numpy as np
 from utility import *
 
+
+class Hit:
+    def __init__(self, t=None, point=None, normal=None):
+        self.t = t
+        self.point = point
+        self.normal = normal
+
+        
 class Material:
     def __init__(self, reflection, ambient, color):        
         self.reflection = reflection
@@ -14,7 +22,7 @@ class Intersectable:
         
 class Sphere(Intersectable):
     def __init__(self, center, radius, material):
-        self.center = center # 3D coordinates of sphere center
+        self.center = np.array(center) # 3D coordinates of sphere center
         self.radius = radius
         self.material = material
 
@@ -46,13 +54,13 @@ class Sphere(Intersectable):
             d1 = (-b + np.sqrt(discriminant)) / 2
             d2 = (-b - np.sqrt(discriminant)) / 2
             if d1 > 0 and d2 > 0:
-              return min(d1, d2)
+              return min(d1, d2) # return the closest intersection (this should be the front-face of the sphere)
             else:
               return -1.0
 
 class Plane(Intersectable):
     def __init__(self, origin, normal):
-        self.origin = origin
+        self.origin = np.array(origin)
         self.normal = normal
 
     def intersect_test(self, ray):
@@ -74,14 +82,55 @@ class Plane(Intersectable):
 
         return -1.0
 
+    def surface_color(self, intersection):
+        # checkerboard pattern logic borrowed from here:
+        # https://github.com/carl-vbn/pure-java-raytracer/blob/23300fca6e9cb6eb0a830c0cd875bdae56734eb7/src/carlvbn/raytracing/solids/Plane.java#L32
+
+        point = intersection - self.origin # get the point sitting on the plane by taking the scaled ray  minus plane origin
+        pX = int(point[0])
+        pZ = int(point[2])
+
+        # for every other x and z position that is even, color the pixel white, otherwise orange
+        # might not work behind the camera
+        if ((pX % 2 == 0) == (pZ % 2 == 0)):
+          return np.array([252, 204, 116])
+        else:
+          return np.array([30,30,30])
+
 class Ray:
     def __init__(self, origin, direction):
         self.origin = origin
         self.direction = direction
 
+    def intersection(self, d):
+        return self.origin + (self.direction * d)
+
 class Light:
     def __init__(self, position, intensity):
-        self.position = position
+        self.position = np.array(position)
         self.intensity = intensity
+
+class Viewport:
+    def __init__(self, aspect_ratio, image_width, image_height):
+        # we want the viewport to have the same aspect ratio as the image itself
+        # the viewport ranges from -1 to 1 in the x-axis
+        # and -1/aspect_ratio to 1/aspect_ratio in the y-axis
+        # these numbers are arbitrary, but it's a common occurrence
+        self.width = 1
+        self.height = (1.0 / aspect_ratio)
+
+        viewport = (-self.width, -self.height, self.width, self.height) # LEFT, BOTTOM, RIGHT, TOP
+        self.coordinates = [np.linspace(viewport[1], viewport[3], image_height), np.linspace(viewport[0], viewport[2], image_width)]
+        
+class Camera:
+    def __init__(self, position, vertical_fov, viewport):
+        self.position = np.array(position)
+        self.viewport = viewport
+        
+        
+        
+
+        
+   
         
         

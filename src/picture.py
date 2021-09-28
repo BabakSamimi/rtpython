@@ -47,12 +47,25 @@ def plane_intersection(ray, plane):
     
     d = -((rOY - pOY) / rDY)
     if d > 0 and d < 1e6:
-      return d # scaling factor for direction
+      return d
 
     return -1.0
 
 def light_intersection(intersection, light):
-    surface_normal = normalize(intersection - light)
+    intersection = ray.origin + (ray.direction * distance)
+    surface_normal = normalize(intersection - sphere.center)
+    surface_normal_shifted = intersection + 1e-6 * surface_normal
+
+    for light in lights:
+      intersection_to_light = normalize(light.position - surface_normal_shifted)
+      i_l_normal = normalize(intersection_to_light)
+      shadow_ray = Ray(intersection, intersection_to_light)
+      luminance = int(np.dot(light.position, surface_normal_shifted))
+      if luminance < 0:
+        color -= np.zeros((3))
+
+      #color = intersect_objects(shadow_ray, scene_objects, depth)
+
   
 def intersect_objects(ray, scene_objects, depth):
 
@@ -61,33 +74,42 @@ def intersect_objects(ray, scene_objects, depth):
   
     depth += 1
 
-    color = np.array([0,0,0]) 
+    color = np.zeros((3)) 
 
     spheres = scene_objects[0]
     planes = scene_objects[1]
     lights = scene_objects[2]
+
+    hit = False
+    hit_data = Hit()
     
     # sphere intersection
     sphere_hit = False
     intersection = None # intersection point (vector)
 
     for sphere in spheres:
-        distance = sphere.intersect_test(ray)
+      distance = sphere.intersect_test(ray)
+        
+      if distance > 0:
+          
+        sphere_hit = True
+        color += sphere.material.color
 
-        if distance > 0:
-            sphere_hit = True
-            color = sphere.material.color
-            intersection = ray.origin + (ray.direction * distance)
-            surface_normal = normalize(intersection - sphere.center)
-            # nudge the surface_normal a little towards it's direction
-            # in order to prevent that it appears inside the sphere
-            surface_normal += 1e-2
-            for light in lights:
-              intersection_to_light = normalize(light.position - surface_normal)
-              shadow_ray = Ray(intersection, intersection_to_light)
-              color = intersect_objects(shadow_ray, scene_objects, depth)
-
-            break
+        intersection = ray.intersection(distance)
+        surf_norm = normalize(intersection - sphere.center)
+        # nudge it away a little from the sphere surface
+        surf_norm_moved = intersection + 1e-7 * surf_norm
+        
+        for light in lights:
+          light_direction = normalize(light.position - surf_norm_moved)
+          intersection_to_light = intersection - light.position
+              
+          luminance = np.dot(light_direction, surf_norm)
+          if luminance < 0:
+            color -= color*(abs(luminance))
+              
+            
+        break
 
     if not sphere_hit:            
       # plane intersection
@@ -96,23 +118,12 @@ def intersect_objects(ray, scene_objects, depth):
       #distance = plane.intersect_test(ray) # this is bugged?! doesn't even work even if it's the exact same as the plane_intersection function
 
       if distance is not -1.0:
-        # checkerboard pattern logic borrowed from here:
-        # https://github.com/carl-vbn/pure-java-raytracer/blob/23300fca6e9cb6eb0a830c0cd875bdae56734eb7/src/carlvbn/raytracing/solids/Plane.java#L32
-
         intersection = ray.origin + (ray.direction * distance)
-        point = intersection - plane.origin # get the point sitting on the plane by taking the scaled ray  minus plane origin
-        pX = int(point[0])
-        pZ = int(point[2])
-
-        # for every other x and z position that is even, color the pixel white, otherwise gray/black
-        # might not work behind the camera
-        if ((pX % 2 == 0) == (pZ % 2 == 0)):
-          color = np.array([255,255,255])
-        else:
-          color = np.array([30,30,30])
+        color = plane.surface_color(intersection)
 
     return color
 
+  
 def main():
     
     pygame.init()
@@ -122,25 +133,16 @@ def main():
     aspect_ratio = float(WIDTH/HEIGHT)
     print("Aspect ratio:", aspect_ratio)
 
-    # Init font for progress text
-    font = pygame.font.Font(None, int(aspect_ratio * 15))
+    font = pygame.font.Font(None, int(aspect_ratio * 10))
 
-    # we want the viewport to have the same aspect ratio as the image itself
-    # the viewport ranges from -1 to 1 in the x-axis
-    # and -1/aspect_ratio to 1/aspect_ratio in the y-axis
-    # these numbers are arbitrary, but it's a common occurrence
+    v = Viewport(aspect_ratio, WIDTH, HEIGHT)
+    c = Camera((0.0, 0.0, 1.0), 100, v)
     
-    viewport_width = 1.0
-    viewport_height = (1.0 / aspect_ratio)
-    viewport = (-viewport_width, -viewport_height, viewport_width, viewport_height) # LEFT, BOTTOM, RIGHT, TOP
-
-   
     # A pixel-array with 3 values for each pixel (RGB)
     # Essential this is a Width x Height with a depth of 3
     # PyGame will read the backbuffer as [X, Y], hence why WIDTH is being used to determine the rows of the matrix
     backbuffer = np.zeros((WIDTH, HEIGHT, 3))
                
-#   framebuffer = pygame.display.set_mode((WIDTH + INSET, HEIGHT + INSET))
     framebuffer = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
     pygame.display.set_caption("Backwards ray-tracing")
 
@@ -148,17 +150,18 @@ def main():
     running = True
 
     # ray origin
-    camera = np.array([0.0, 0.0, 1.0])
+    camera = np.array([0, 0, 1])
     origin = np.array([0.0, 0.0, 0.0])
 
     # multi-array, first array is for spheres, second array for planes, third for lights
     scene_objects = []
-    scene_objects.append([Sphere(center=np.array([0, 0, 0.3]), radius=0.2, material=Material(1.0, 0.0, (255, 255, 255))),
-                          Sphere(center=np.array([0.50, 0.3, 0]), radius=0.2, material=Material(0.0, 0.4, (30, 3, 120)))])
+    scene_objects.append([Sphere(center=(-0.5, 0.0, 0.25), radius=0.2, material=Material(1.0, 0.0, (200, 25, 55))),
+                          Sphere(center=(0.0, 0.0, 0.0), radius=0.2, material=Material(0.0, 0.4, (30, 152, 90))),
+                          Sphere(center=(0.5, 0.0, -0.25), radius=0.2, material=Material(0.0, 0.4, (170, 122, 90)))])
+
+    scene_objects.append([Plane(origin=(.0, -1.0 , .0), normal=np.array([.0, 1.0, .0]))])
     
-    scene_objects.append([Plane(origin=np.array([.0, -1.0 , .0]), normal=np.array([.0, 1.0, .0]))])
-    
-    scene_objects.append([Light(position=np.array([-2.0 , 3.0, 1]), intensity=0.55)])                      
+    scene_objects.append([Light(position=(-2.0, 0.5, 1.0), intensity=1.5)])
 
     while running:
         
@@ -171,13 +174,13 @@ def main():
         if render:
             start_counter = perf_counter()
             # y_index and x_index are indices used for the pixel array and y and x are the viewport coordinates 
-            for y_index, y in enumerate(np.linspace(viewport[1], viewport[3], HEIGHT)):
+            for y_index, y in enumerate(c.viewport.coordinates[0]):
                 if (y_index+1) % 10 == 0:
                     text, textpos = progress_text(y_index, font, WIDTH, HEIGHT, INSET)
                     framebuffer.blit(text, textpos)
                     pygame.display.update()
                     
-                for x_index, x in enumerate(np.linspace(viewport[0], viewport[2], WIDTH)):
+                for x_index, x in enumerate(c.viewport.coordinates[1]):
                     
                     # Pygame seems to be using the origin at the upper left corner,
                     # so we have to make y negative in order to respect a right-handed coordinate system (3D)
