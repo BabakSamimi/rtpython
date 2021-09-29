@@ -29,34 +29,34 @@ class Sphere(Intersectable):
     # treat sphere intersection as a quadratic function to solve, f = ax^2 + bx + c
     # https://en.wikipedia.org/wiki/Quadratic_equation#Quadratic_formula_and_its_derivation
     def intersect_test(self, ray):
-          rD = ray.direction
-          rO = ray.origin
-          sC = self.center
-          sR = self.radius
-          rOsC = rO-sC # origin - sphere
-          unit_rOsC = normalize(rOsC)
+        rD = ray.direction
+        rO = ray.origin
+        sC = self.center
+        sR = self.radius
+        rOsC = rO - sC # origin - sphere
+        unit_rOsC = normalize(rOsC)
 
-          # determines if the ray direction is looking at the sphere, temporary code
-          if np.dot(unit_rOsC, rD) > 0:
-            return -1.0
+        # determines if the ray direction is looking at the sphere, temporary code
+        #if np.dot(unit_rOsC, rD) > 0:
+          #return -1.0
 
-          a = 1 # a = ||rD|| = 1 because rD is a unit vector
-          b = 2 * np.dot(rD, rOsC) # b = 2 * rD (rO - sC)
-          c = np.dot(rOsC, rOsC) - np.dot(sR, sR) # (rO - sC)^2 - sR^2, dot product with itself will square the vector
-          discriminant = (b**2) - (4*c)
+        a = 1 # a = ||rD|| = 1 because rD is a unit vector
+        b = 2 * np.dot(rD, rOsC) # b = 2 * rD (rO - sC)
+        c = np.dot(rOsC, rOsC) - np.dot(sR, sR) # (rO - sC)^2 - sR^2, dot product with itself will square the vector
+        discriminant = (b**2) - (4*c)
 
-          if discriminant < 0:
+        if discriminant < 0:
             # no solutions
             return -1.0
-          else:
+        else:
             # return closest intersection
 
             d1 = (-b + np.sqrt(discriminant)) / 2
             d2 = (-b - np.sqrt(discriminant)) / 2
             if d1 > 0 and d2 > 0:
-              return min(d1, d2) # return the closest intersection (this should be the front-face of the sphere)
+                return min(d1, d2)
             else:
-              return -1.0
+                return -1.0
 
 class Plane(Intersectable):
     def __init__(self, origin, normal):
@@ -111,22 +111,37 @@ class Light:
         self.intensity = intensity
 
 class Viewport:
-    def __init__(self, aspect_ratio, image_width, image_height):
+    def __init__(self, height_ratio, aspect_ratio, image_width, image_height):
         # we want the viewport to have the same aspect ratio as the image itself
         # the viewport ranges from -1 to 1 in the x-axis
         # and -1/aspect_ratio to 1/aspect_ratio in the y-axis
-        # these numbers are arbitrary, but it's a common occurrence
+        # these numbers are arbitrary, but it's a common thing to do
         self.width = 1
-        self.height = (1.0 / aspect_ratio)
+        self.height = (1.0 / aspect_ratio) * height_ratio
 
         viewport = (-self.width, -self.height, self.width, self.height) # LEFT, BOTTOM, RIGHT, TOP
+        
         self.coordinates = [np.linspace(viewport[1], viewport[3], image_height), np.linspace(viewport[0], viewport[2], image_width)]
         
 class Camera:
-    def __init__(self, position, vertical_fov, viewport):
-        self.position = np.array(position)
-        self.viewport = viewport
+    def __init__(self, position, look_to, vertical_fov, aspect_ratio, image_width, image_height):
+
+        # this FOV code might not work properly at the moment
+        angle = np.deg2rad(vertical_fov)
+        h = np.tan(angle/2)       
         
+        self.position = np.array(position)
+        self.look_to = np.array(look_to)
+        self.up = np.array([0.0, 1.0, 0.0])        
+        
+        self.z = normalize(self.position - self.look_to) # unit vector at where we are looking
+        self.x = normalize(np.cross(self.up, self.z))
+        self.y = np.cross(self.z, self.x)
+
+        self.yaw = 0.0
+        self.pitch = 0.0
+        
+        self.viewport = Viewport(h, aspect_ratio, image_width, image_height)
         
         
 

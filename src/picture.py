@@ -80,34 +80,30 @@ def intersect_objects(ray, scene_objects, depth):
     planes = scene_objects[1]
     lights = scene_objects[2]
 
-    hit = False
-    hit_data = Hit()
-    
     # sphere intersection
     sphere_hit = False
     intersection = None # intersection point (vector)
 
-    for sphere in spheres:
+    for i, sphere in enumerate(spheres):
       distance = sphere.intersect_test(ray)
         
       if distance > 0:
           
         sphere_hit = True
-        color += sphere.material.color
-
+        
+        
         intersection = ray.intersection(distance)
         surf_norm = normalize(intersection - sphere.center)
         # nudge it away a little from the sphere surface
-        surf_norm_moved = intersection + 1e-7 * surf_norm
+        surf_norm_moved = intersection + 1e-6 * surf_norm
         
         for light in lights:
-          light_direction = normalize(light.position - surf_norm_moved)
-          intersection_to_light = intersection - light.position
-              
-          luminance = np.dot(light_direction, surf_norm)
+          to_light = normalize(light.position - surf_norm_moved)
+          
+          color += sphere.material.color*0.5
+          luminance = np.dot(to_light, surf_norm)
           if luminance < 0:
-            color -= color*(abs(luminance))
-              
+            color -= color*(abs(luminance))              
             
         break
 
@@ -123,10 +119,22 @@ def intersect_objects(ray, scene_objects, depth):
 
     return color
 
-  
+def ray_trace(ray, scene_objects):  
+  hit = False
+  hit_data = Hit()
+
+    
+
+  return hit_data
+
+def compute_color(hit_data):
+  pass
+
 def main():
     
     pygame.init()
+    pygame.event.set_grab(True)
+    pygame.mouse.set_visible(False)
 
     print("Smooth scale backend:", pygame.transform.get_smoothscale_backend())
 
@@ -135,81 +143,72 @@ def main():
 
     font = pygame.font.Font(None, int(aspect_ratio * 10))
 
-    v = Viewport(aspect_ratio, WIDTH, HEIGHT)
-    c = Camera((0.0, 0.0, 1.0), 100, v)
+    camera = Camera((0.0, 0.3, 0.8), (0.0, 0.0, 0.0), 90, aspect_ratio, WIDTH, HEIGHT)
     
     # A pixel-array with 3 values for each pixel (RGB)
     # Essential this is a Width x Height with a depth of 3
     # PyGame will read the backbuffer as [X, Y], hence why WIDTH is being used to determine the rows of the matrix
     backbuffer = np.zeros((WIDTH, HEIGHT, 3))
                
-    framebuffer = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+    framebuffer = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), flags=pygame.FULLSCREEN)
     pygame.display.set_caption("Backwards ray-tracing")
 
     render = True
     running = True
 
-    # ray origin
-    camera = np.array([0, 0, 1])
-    origin = np.array([0.0, 0.0, 0.0])
-
     # multi-array, first array is for spheres, second array for planes, third for lights
     scene_objects = []
-    scene_objects.append([Sphere(center=(-0.5, 0.0, 0.25), radius=0.2, material=Material(1.0, 0.0, (200, 25, 55))),
+    scene_objects.append([Sphere(center=(-0.2, 0.0, -0.5), radius=0.1, material=Material(1.0, 0.0, (200, 25, 55))),
                           Sphere(center=(0.0, 0.0, 0.0), radius=0.2, material=Material(0.0, 0.4, (30, 152, 90))),
-                          Sphere(center=(0.5, 0.0, -0.25), radius=0.2, material=Material(0.0, 0.4, (170, 122, 90)))])
+                          Sphere(center=(0.2, 0.0, -1.0), radius=0.1, material=Material(0.0, 0.4, (170, 122, 90)))])
 
     scene_objects.append([Plane(origin=(.0, -1.0 , .0), normal=np.array([.0, 1.0, .0]))])
     
-    scene_objects.append([Light(position=(-2.0, 0.5, 1.0), intensity=1.5)])
+    scene_objects.append([Light(position=(-2.0, 0.0, 1.0), intensity=1.5)])
 
-    while running:
-        
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            if event.type == pygame.KEYDOWN:
-              render, camera = process_input(pygame.key.get_pressed(), camera)
-
-        if render:
-            start_counter = perf_counter()
-            # y_index and x_index are indices used for the pixel array and y and x are the viewport coordinates 
-            for y_index, y in enumerate(c.viewport.coordinates[0]):
-                if (y_index+1) % 10 == 0:
-                    text, textpos = progress_text(y_index, font, WIDTH, HEIGHT, INSET)
-                    framebuffer.blit(text, textpos)
-                    pygame.display.update()
-                    
-                for x_index, x in enumerate(c.viewport.coordinates[1]):
-                    
-                    # Pygame seems to be using the origin at the upper left corner,
-                    # so we have to make y negative in order to respect a right-handed coordinate system (3D)
-                    pixel = np.array([x,-y,0]) 
-                    direction = normalize(pixel - camera) # figure out the direction of the ray
-
-                    primary_ray = Ray(camera, direction)
-                    #hit_data = raytrace(primary_ray)
-                    
-                    color = intersect_objects(primary_ray, scene_objects, 0)
-                    
-                    backbuffer[x_index, y_index] = color
-
-            
-            temp_framebuffer = pygame.surfarray.make_surface(backbuffer)
-            #temp_framebuffer_upscaled = pygame.transform.scale(temp_framebuffer, (int(WINDOW_WIDTH/2),int(WINDOW_HEIGHT/2)))
-
-            # create an upscaled version of our frame that is half the size of the window dimensions
-            temp_framebuffer_upscaled = pygame.transform.smoothscale(temp_framebuffer, (int(WINDOW_WIDTH/2),int(WINDOW_HEIGHT/2)) )
-            center_x, center_y = (int(WINDOW_WIDTH/4), int((WINDOW_HEIGHT/4)))
-            
-            framebuffer.blit(temp_framebuffer_upscaled, ( (center_x, center_y )))
+    while running:               
+      
+      if render:
+        start_counter = perf_counter()
+        # y_index and x_index are indices used for the pixel array and y and x are the viewport coordinates 
+        for y_index, y in enumerate(camera.viewport.coordinates[0]):
+          if (y_index+1) % 10 == 0:
+            text, textpos = progress_text(y_index, font, WIDTH, HEIGHT, INSET)
+            framebuffer.blit(text, textpos)
             pygame.display.update()
+
+          for x_index, x in enumerate(camera.viewport.coordinates[1]):
+
+            # Pygame seems to be using the origin at the upper left corner,
+            # so we have to make y negative in order to respect a right-handed coordinate system (3D)
+            pixel = np.array([x,-y,0]) 
+            direction = normalize(pixel - camera.z) # figure out the direction of the ray
             
-            end_counter = perf_counter()
-            elapsed_seconds = (end_counter - start_counter)
-            print("It took", elapsed_seconds, "seconds to render") 
-            
+            primary_ray = Ray(camera.position, direction)
+            #hit_data = trace(primary_ray, scene_objects)
+
+            color = intersect_objects(primary_ray, scene_objects, 0)
+
+            backbuffer[x_index, y_index] = color
+
+
+        temp_framebuffer = pygame.surfarray.make_surface(backbuffer)
+        #temp_framebuffer_upscaled = pygame.transform.scale(temp_framebuffer, (int(WINDOW_WIDTH/2),int(WINDOW_HEIGHT/2)))
+
+        # create an upscaled version of our frame that is half the size of the window dimensions
+        temp_framebuffer_upscaled = pygame.transform.smoothscale(temp_framebuffer, (int(WINDOW_WIDTH),int(WINDOW_HEIGHT)) )
+        center_x, center_y = (int(WINDOW_WIDTH/4), int((WINDOW_HEIGHT/4)))
+
+        framebuffer.blit(temp_framebuffer_upscaled, ( (0,0)))
+        pygame.display.update()
+
+        end_counter = perf_counter()
+        elapsed_seconds = (end_counter - start_counter)
+        print("It took", elapsed_seconds, "seconds to render")
         render = False
+        
+      running, render, camera = process_events(camera)
+    
 
     
 if __name__ == '__main__':
