@@ -3,11 +3,11 @@ from utility import *
 
 
 class Hit:
-    def __init__(self, t=None, point=None, normal=None):
-        self.t = t
-        self.point = point
+    def __init__(self, distance=None, geometry=None, normal=None):
+        self.distance = distance
+        self.geometry = geometry
         self.normal = normal
-
+        self.hit = distance > 0
         
 class Material:
     def __init__(self, reflection, ambient, color):        
@@ -19,12 +19,18 @@ class Intersectable:
     
     def intersect_test(self, ray):
         pass
+
+    def get_color(self, intersection):
+        pass
         
 class Sphere(Intersectable):
     def __init__(self, center, radius, material):
         self.center = np.array(center) # 3D coordinates of sphere center
         self.radius = radius
         self.material = material
+
+    def get_color(self, intersection):
+        return self.material.color
 
     # treat sphere intersection as a quadratic function to solve, f = ax^2 + bx + c
     # https://en.wikipedia.org/wiki/Quadratic_equation#Quadratic_formula_and_its_derivation
@@ -34,16 +40,15 @@ class Sphere(Intersectable):
         sC = self.center
         sR = self.radius
         rOsC = rO - sC # origin - sphere
-        unit_rOsC = normalize(rOsC)
 
         # determines if the ray direction is looking at the sphere, temporary code
         #if np.dot(unit_rOsC, rD) > 0:
           #return -1.0
 
-        a = 1 # a = ||rD|| = 1 because rD is a unit vector
-        b = 2 * np.dot(rD, rOsC) # b = 2 * rD (rO - sC)
-        c = np.dot(rOsC, rOsC) - np.dot(sR, sR) # (rO - sC)^2 - sR^2, dot product with itself will square the vector
-        discriminant = (b**2) - (4*c)
+        a = length(rD) # a = ||rD|| = 1 because rD is a unit vector
+        b = 2 * np.dot(rD, rOsC) # b = 2 * rD*rOsC
+        c = np.dot(rOsC, rOsC) - sR ** sR  # (rO - sC)^2 - sR^2, dot product with itself will square the vector
+        discriminant = (b**2) - (4*a*c)
 
         if discriminant < 0:
             # no solutions
@@ -51,18 +56,19 @@ class Sphere(Intersectable):
         else:
             # return closest intersection
 
-            d1 = (-b + np.sqrt(discriminant)) / 2
-            d2 = (-b - np.sqrt(discriminant)) / 2
+            d1 = (-b + np.sqrt(discriminant)) / (2*a)
+            d2 = (-b - np.sqrt(discriminant)) / (2*a)
             if d1 > 0 and d2 > 0:
                 return min(d1, d2)
             else:
                 return -1.0
 
 class Plane(Intersectable):
-    def __init__(self, origin, normal):
+    def __init__(self, origin, normal, material):
         self.origin = np.array(origin)
         self.normal = normal
-
+        self.material = material
+    
     def intersect_test(self, ray):
         rD = ray.direction
         rO = ray.origin
@@ -82,7 +88,7 @@ class Plane(Intersectable):
 
         return -1.0
 
-    def surface_color(self, intersection):
+    def get_color(self, intersection):
         # checkerboard pattern logic borrowed from here:
         # https://github.com/carl-vbn/pure-java-raytracer/blob/23300fca6e9cb6eb0a830c0cd875bdae56734eb7/src/carlvbn/raytracing/solids/Plane.java#L32
 
@@ -109,6 +115,9 @@ class Light:
     def __init__(self, position, intensity):
         self.position = np.array(position)
         self.intensity = intensity
+
+    def calculate_intensity(self, luminance, light_dir, surf_norm):
+        return self.intensity * luminance / (length(surf_norm) * length(light_dir))
 
 class Viewport:
     def __init__(self, height_ratio, aspect_ratio, image_width, image_height):
