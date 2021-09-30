@@ -23,14 +23,21 @@ def process_input(keys, camera):
   elif keys[K_a]:
     camera.position += normalize(np.cross(camera.z, camera.up))
   elif keys[K_d]:
-    camera.position -= normalize(np.cross(camera.z, camera.up))    
+    camera.position -= normalize(np.cross(camera.z, camera.up))
+  elif keys[K_UP]:
+    camera.look_to[1] += 0.5
+  elif keys[K_DOWN]:
+    camera.look_to[1] -= 0.5    
+  elif keys[K_LEFT]:
+    camera.look_to[0] -= 0.5
+  elif keys[K_RIGHT]:
+    camera.look_to[0] += 0.5        
   else:
     return (False, camera)
 
   camera.z = normalize(camera.position - camera.look_to)
   return (True, camera)
 
-FIRST_MOUSE_INPUT = True
 
 def process_mouse_input(rel_pos, camera):
   

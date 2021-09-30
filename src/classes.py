@@ -10,10 +10,26 @@ class Hit:
         self.hit = distance > 0
         
 class Material:
-    def __init__(self, reflection, ambient, color):        
+    def __init__(self, reflection, ambient, color, checker=False):        
         self.reflection = reflection
         self.ambient = ambient
-        self.color = np.array([color[0], color[1], color[2]])
+        if color:
+            self.color = np.array([color[0], color[1], color[2]])
+        self.checker = checker # checker pattern texture
+
+# checkerboard pattern logic borrowed from here:
+# https://github.com/carl-vbn/pure-java-raytracer/blob/23300fca6e9cb6eb0a830c0cd875bdae56734eb7/src/carlvbn/raytracing/solids/Plane.java#L32
+def checker_color(intersection, origin):
+    point = intersection - origin # get the point sitting on the plane by taking the scaled ray  minus plane origin
+    pX = int(point[0])
+    pZ = int(point[2])
+
+    # for every other x and z position that is even, color the pixel white, otherwise beige
+    # might not work behind the camera
+    if ((pX % 2 == 0) == (pZ % 2 == 0)):
+        return np.array([252, 204, 116])
+    else:
+        return np.array([30,30,30])
 
 class Intersectable:
     
@@ -22,6 +38,9 @@ class Intersectable:
 
     def get_color(self, intersection):
         pass
+
+    def get_normal(self, intersection):
+        pass
         
 class Sphere(Intersectable):
     def __init__(self, center, radius, material):
@@ -29,7 +48,13 @@ class Sphere(Intersectable):
         self.radius = radius
         self.material = material
 
+    def get_normal(self, intersection):
+        return normalize(intersection - self.center)
+        
     def get_color(self, intersection):
+        if self.material.checker:
+            return checker_color(intersection, self.center)
+
         return self.material.color
 
     # treat sphere intersection as a quadratic function to solve, f = ax^2 + bx + c
@@ -41,11 +66,7 @@ class Sphere(Intersectable):
         sR = self.radius
         rOsC = rO - sC # origin - sphere
 
-        # determines if the ray direction is looking at the sphere, temporary code
-        #if np.dot(unit_rOsC, rD) > 0:
-          #return -1.0
-
-        a = length(rD) # a = ||rD|| = 1 because rD is a unit vector
+        a = length(rD)
         b = 2 * np.dot(rD, rOsC) # b = 2 * rD*rOsC
         c = np.dot(rOsC, rOsC) - sR ** sR  # (rO - sC)^2 - sR^2, dot product with itself will square the vector
         discriminant = (b**2) - (4*a*c)
@@ -66,9 +87,12 @@ class Sphere(Intersectable):
 class Plane(Intersectable):
     def __init__(self, origin, normal, material):
         self.origin = np.array(origin)
-        self.normal = normal
+        self.normal = np.array(normal)
         self.material = material
-    
+
+    def get_normal(self, intersection):
+        return normalize(intersection - self.origin)
+        
     def intersect_test(self, ray):
         rD = ray.direction
         rO = ray.origin
@@ -76,32 +100,24 @@ class Plane(Intersectable):
         pN = self.normal
         pO = self.origin
 
-        #d = -(np.dot(rO, pN) + 1) / np.dot(rD, pN)
+        #rOY = rO[1] # ray origin y component 
+        #pOY = pO[1] # plane origin y component
+        #rDY = rD[1] # ray direction y component
 
-        rOY = rO[1] # ray origin y component 
-        pOY = pO[1] # plane origin y component
-        rDY = rD[1] # ray direction y component
-
-        d = -((rOY - pOY) / rDY)
+        #d = -((rOY - pOY) / rDY)
+        d = -(np.dot(rO, pN)) / np.dot(rD, pN)
+        
         if d > 0 and d < 1e6:        
-            return d # scaling factor for direction
+            return d
 
         return -1.0
 
     def get_color(self, intersection):
-        # checkerboard pattern logic borrowed from here:
-        # https://github.com/carl-vbn/pure-java-raytracer/blob/23300fca6e9cb6eb0a830c0cd875bdae56734eb7/src/carlvbn/raytracing/solids/Plane.java#L32
+        if self.material.checker:
+            return checker_color(intersection, self.origin)
 
-        point = intersection - self.origin # get the point sitting on the plane by taking the scaled ray  minus plane origin
-        pX = int(point[0])
-        pZ = int(point[2])
+        return self.material.color
 
-        # for every other x and z position that is even, color the pixel white, otherwise orange
-        # might not work behind the camera
-        if ((pX % 2 == 0) == (pZ % 2 == 0)):
-          return np.array([252, 204, 116])
-        else:
-          return np.array([30,30,30])
 
 class Ray:
     def __init__(self, origin, direction):
@@ -109,12 +125,12 @@ class Ray:
         self.direction = direction
 
     def intersection(self, d):
-        return self.origin + (self.direction * d)
+        return self.origin + self.direction * d
 
 class Light:
     def __init__(self, position, intensity):
         self.position = np.array(position)
-        self.intensity = intensity
+        self.intensity = intensity        
 
     def calculate_intensity(self, luminance, light_dir, surf_norm):
         return self.intensity * luminance / (length(surf_norm) * length(light_dir))

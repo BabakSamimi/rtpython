@@ -39,33 +39,18 @@ def plane_intersection(ray, plane):
     pN = plane.normal
     pO = plane.origin
 
-    #d = -(np.dot(rO, pN) + 1) / np.dot(rD, pN)
-
     rOY = rO[1] # ray origin y component 
     pOY = pO[1] # plane origin y component
     rDY = rD[1] # ray direction y component
     
     d = -((rOY - pOY) / rDY)
+    
+    #d = -(np.dot(rO, pN) + 5) / np.dot(rD, pN)
+    
     if d > 0 and d < 1e6:
       return d
 
     return -1.0
-
-def light_intersection(intersection, light):
-    intersection = ray.origin + (ray.direction * distance)
-    surface_normal = normalize(intersection - sphere.center)
-    surface_normal_shifted = intersection + 1e-6 * surface_normal
-
-    for light in lights:
-      intersection_to_light = normalize(light.position - surface_normal_shifted)
-      i_l_normal = normalize(intersection_to_light)
-      shadow_ray = Ray(intersection, intersection_to_light)
-      luminance = int(np.dot(light.position, surface_normal_shifted))
-      if luminance < 0:
-        color -= np.zeros((3))
-
-      #color = intersect_objects(shadow_ray, scene_objects, depth)
-
   
 def intersect_objects(ray, scene_objects, depth):
 
@@ -78,41 +63,32 @@ def intersect_objects(ray, scene_objects, depth):
 
     spheres = scene_objects[0]
     planes = scene_objects[1]
-    lights = scene_objects[2]
 
-    # sphere intersection
-    sphere_hit = False
     
+    # sphere intersection´    
     for sphere in spheres:
-      distance = sphere.intersect_test(ray)
-        
+      distance = sphere.intersect_test(ray)                  
       if distance > 0:          
-        sphere_hit = True
 
         return (sphere, distance)                              
 
-    if not sphere_hit:            
-      # plane intersection
-      plane = planes[0]
-      distance = plane_intersection(ray, plane)
-      #distance = plane.intersect_test(ray) # this is bugged?! doesn't even work even if it's the exact same as the plane_intersection function
+    #plane intersection
+    plane = planes[0]
+    distance = plane_intersection(ray, plane)
+    #distance = plane.intersect_test(ray) # this is bugged?! doesn't even work even if it's the exact same as the plane_intersection function
 
-      if distance > 0:
-        return (plane, distance)
+    if distance > 0:
+      return (plane, distance)
 
     return (None, -1.0)
 
 def trace_ray(ray, scene_objects):  
 
   geometry, distance = intersect_objects(ray, scene_objects, 0)
-
   hit_data = Hit(distance, geometry)
 
-  # change this logic later
-  if type(geometry) is Plane:
-    hit_data.normal = normalize(ray.intersection(distance))
-  elif type(geometry) is Sphere:
-    hit_data.normal = normalize(ray.intersection(distance) - geometry.center)
+  if hit_data.hit:
+    hit_data.normal = geometry.get_normal(ray.intersection(distance))
   
   return hit_data
 
@@ -122,24 +98,37 @@ def compute_color(ray, hit_data, scene_objects):
   planes = scene_objects[1]
   lights = scene_objects[2]
 
+  geometry = hit_data.geometry
+
   color = np.zeros((3))
-  lightning = 0.3
+  lightning = 0.2 # GI
   
   intersection = ray.intersection(hit_data.distance)
+  if type(geometry) is Plane:
+    pass
+    #print(intersection)
+    
   # nudge it away a little from the intersection point
-  sN_direction = intersection + 0.0001 * hit_data.normal # surface normal direction (NOTE, this is not a normalized vector)
+  sN_direction = intersection + (0.0001 * hit_data.normal) # surface normal direction (NOTE, this is not a normalized vector)
+  sN = normalize(sN_direction)
 
-  color = hit_data.geometry.get_color(intersection)
+  color = geometry.get_color(intersection)
 
   # lightning computation from point-based lights
   for light in lights:
-    sN = normalize(sN_direction)
-    l_direction = light.position - sN_direction
 
+    l_direction = light.position - sN_direction
+    
+    l_radius = length(l_direction)
+    lN = normalize(l_direction)
+    
     luminance = np.dot(l_direction, sN)
+    
     # if the surface normal is facing away from the light
-    # then 
-    if luminance > 0.0:
+    # then
+
+    # Calculate diffuse
+    if luminance > 0.0:          
       lightning += light.calculate_intensity(luminance, l_direction, sN)
       clamp(lightning, 0.0, 1.0)
 
@@ -158,14 +147,14 @@ def main():
     aspect_ratio = float(WIDTH/HEIGHT)
     print("Aspect ratio:", aspect_ratio)
 
-    camera = Camera((0.3, 0.3, 2.0), (0.0, 0.0, 0.0), 90, aspect_ratio, WIDTH, HEIGHT)
+    camera = Camera((0.0, 0.0, 2.0), (0.0, 0.0, 0.0), 90, aspect_ratio, WIDTH, HEIGHT)
     
     # A pixel-array with 3 values for each pixel (RGB)
     # Essential this is a Width x Height with a depth of 3
     # PyGame will read the backbuffer as [X, Y], hence why WIDTH is being used to determine the rows of the matrix
     backbuffer = np.zeros((WIDTH, HEIGHT, 3))
                
-    framebuffer = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), flags=pygame.FULLSCREEN)
+    framebuffer = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT)) #flags=pygame.FULLSCREEN)
     pygame.display.set_caption("Backwards ray-tracing")
 
     render = True
@@ -173,13 +162,12 @@ def main():
 
     # multi-array, first array is for spheres, second array for planes, third for lights
     scene_objects = []
-    scene_objects.append([Sphere(center=(-1.5, -0.2, -0.5), radius=0.1, material=Material(1.0, 0.0, (255, 25, 55))),
-                          Sphere(center=(0.0, 0.2, -.5), radius=0.2, material=Material(0.0, 0.4, (30, 255, 90)))])
+    scene_objects.append([Sphere(center=(0.0, 0.0, -1.0), radius=1.0, material=Material(1.0, 0.0, (255, 25, 50)))])
 
-    scene_objects.append([Plane(origin=(.0, -1.0 , .0), normal=np.array([.0, 1.0, .0]), material=Material(0.0, 1.0, (0,0,0)))])
+    scene_objects.append([Plane(origin=(.0, -1.0 , .0), normal=(.0, 1.0, .0), material=Material(0.0, 1.0, None, True))])
     
-    scene_objects.append([Light(position=(-3.0, 0.0, 0.0), intensity=1.0),
-                          Light(position=(1.0, 1.0, -1.0), intensity=0.5)])
+    scene_objects.append([Light(position=(-.5, -1.0, -1.0), intensity=0.6),
+                          Light(position=(1.0, 2.0, 1.0), intensity=1.0)])
 
     while running:               
       
@@ -205,12 +193,12 @@ def main():
             hit_data = trace_ray(primary_ray, scene_objects)
             
             if hit_data.hit:
+
               color = compute_color(primary_ray, hit_data, scene_objects)
               
-              # clamping because nothing ever works
               color[0] = clamp(color[0], 0, 255)
               color[1] = clamp(color[1], 0, 255)
-              color[2] = clamp(color[2], 0, 255)              
+              color[2] = clamp(color[2], 0, 255)            
 
             backbuffer[x_index, y_index] = color
 
@@ -222,8 +210,9 @@ def main():
         temp_framebuffer_upscaled = pygame.transform.smoothscale(temp_framebuffer, (int(WINDOW_WIDTH/2),int(WINDOW_HEIGHT/2)) )
         center_x, center_y = (int(WINDOW_WIDTH/4), int((WINDOW_HEIGHT/4)))
 
-        framebuffer.blit(temp_framebuffer_upscaled, ( (center_x, center_y)))
         text, textrect = print_camera_info(camera, font)
+        
+        framebuffer.blit(temp_framebuffer_upscaled, ( (center_x, center_y)))        
         framebuffer.blit(text, textrect)
         pygame.display.update()
 
