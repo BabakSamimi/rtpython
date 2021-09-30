@@ -45,7 +45,7 @@ def plane_intersection(ray, plane):
     
     d = -((rOY - pOY) / rDY)
     
-    #d = -(np.dot(rO, pN) + 5) / np.dot(rD, pN)
+    #d = -(np.dot(rO, pN) + 1) / np.dot(rD, pN)
     
     if d > 0 and d < 1e6:
       return d
@@ -65,12 +65,17 @@ def intersect_objects(ray, scene_objects, depth):
     planes = scene_objects[1]
 
     
-    # sphere intersection´    
+    # sphere intersection
+    distance = -1.0
+    geometry = None
     for sphere in spheres:
-      distance = sphere.intersect_test(ray)                  
-      if distance > 0:          
+      d = sphere.intersect_test(ray)
+      if d > distance:
+        geometry = sphere
+        distance = d
 
-        return (sphere, distance)                              
+    if distance > 0:
+      return (geometry, distance)                              
 
     #plane intersection
     plane = planes[0]
@@ -101,7 +106,7 @@ def compute_color(ray, hit_data, scene_objects):
   geometry = hit_data.geometry
 
   color = np.zeros((3))
-  lightning = 0.2 # GI
+  lightning = 0.2 # start with an arbitrary ambient light value
   
   intersection = ray.intersection(hit_data.distance)
   if type(geometry) is Plane:
@@ -109,28 +114,30 @@ def compute_color(ray, hit_data, scene_objects):
     #print(intersection)
     
   # nudge it away a little from the intersection point
-  sN_direction = intersection + (0.0001 * hit_data.normal) # surface normal direction (NOTE, this is not a normalized vector)
-  sN = normalize(sN_direction)
+  intersection_moved = intersection + (0.0001 * hit_data.normal) # NOTE, this is not a normalized vector
+  sN = normalize(intersection_moved)
 
   color = geometry.get_color(intersection)
 
   # lightning computation from point-based lights
   for light in lights:
 
-    l_direction = light.position - sN_direction
+    #l_direction = light.position - intersection_moved
+    #l_direction = intersection_moved - light.position
+    dist = light.position - intersection_moved
     
-    l_radius = length(l_direction)
-    lN = normalize(l_direction)
-    
-    luminance = np.dot(l_direction, sN)
-    
-    # if the surface normal is facing away from the light
-    # then
+    #luminance = np.dot(l_direction, sN)
+    luminance = np.dot(hit_data.normal, normalize(dist))
 
+
+    #if type(geometry) is Plane:
+      #luminance = np.dot(hit_data.normal, dist)
+    
     # Calculate diffuse
-    if luminance > 0.0:          
-      lightning += light.calculate_intensity(luminance, l_direction, sN)
-      clamp(lightning, 0.0, 1.0)
+    if luminance > 0:          
+      #lightning += light.calculate_intensity(luminance, l_direction, intersection_moved)
+      lightning += luminance * (light.intensity/(length(dist)**2))
+      clamp(lightning, 0.0, 1.0)    
 
   return color*lightning
        
@@ -147,7 +154,7 @@ def main():
     aspect_ratio = float(WIDTH/HEIGHT)
     print("Aspect ratio:", aspect_ratio)
 
-    camera = Camera((0.0, 0.0, 2.0), (0.0, 0.0, 0.0), 90, aspect_ratio, WIDTH, HEIGHT)
+    camera = Camera((0.0, 0.0, 2.5), (0.0, 0.0, 0.0), 90, aspect_ratio, WIDTH, HEIGHT)
     
     # A pixel-array with 3 values for each pixel (RGB)
     # Essential this is a Width x Height with a depth of 3
@@ -162,12 +169,12 @@ def main():
 
     # multi-array, first array is for spheres, second array for planes, third for lights
     scene_objects = []
-    scene_objects.append([Sphere(center=(0.0, 0.0, -1.0), radius=1.0, material=Material(1.0, 0.0, (255, 25, 50)))])
+    scene_objects.append([Sphere(center=(0.0, 0.0, -1.5), radius=1.0, material=Material(1.0, 0.0, (255, 25, 50))),
+                          Sphere(center=(-3.0, 0.0, -2.0), radius=0.5, material=Material(1.0, 0.0, (30, 255, 100)))])
 
-    scene_objects.append([Plane(origin=(.0, -1.0 , .0), normal=(.0, 1.0, .0), material=Material(0.0, 1.0, None, True))])
+    scene_objects.append([Plane(origin=(0.0, -1.0 , 0.0), normal=(.0, 1.0, .0), material=Material(0.0, 1.0, None, True))])
     
-    scene_objects.append([Light(position=(-.5, -1.0, -1.0), intensity=0.6),
-                          Light(position=(1.0, 2.0, 1.0), intensity=1.0)])
+    scene_objects.append([Light(position=(3.0, 1.0, -1.0), intensity=1.0)])
 
     while running:               
       

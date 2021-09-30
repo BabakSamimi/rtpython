@@ -17,20 +17,6 @@ class Material:
             self.color = np.array([color[0], color[1], color[2]])
         self.checker = checker # checker pattern texture
 
-# checkerboard pattern logic borrowed from here:
-# https://github.com/carl-vbn/pure-java-raytracer/blob/23300fca6e9cb6eb0a830c0cd875bdae56734eb7/src/carlvbn/raytracing/solids/Plane.java#L32
-def checker_color(intersection, origin):
-    point = intersection - origin # get the point sitting on the plane by taking the scaled ray  minus plane origin
-    pX = int(point[0])
-    pZ = int(point[2])
-
-    # for every other x and z position that is even, color the pixel white, otherwise beige
-    # might not work behind the camera
-    if ((pX % 2 == 0) == (pZ % 2 == 0)):
-        return np.array([252, 204, 116])
-    else:
-        return np.array([30,30,30])
-
 class Intersectable:
     
     def intersect_test(self, ray):
