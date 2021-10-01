@@ -49,17 +49,12 @@ def plane_intersection(ray, plane):
     
     #d = -(np.dot(rO, pN) + 1) / np.dot(rD, pN)
     
-    if d > 0 and d < 1e6:
+    if d > 0.001 and d < 1e6: #  prevent shadow acne by checking above 0.001
       return d
 
     return None
   
-def intersect_objects(ray, scene_objects, depth):
-
-    if depth >= MAX_DEPTH:
-      return (None, None)
-  
-    depth += 1
+def intersect_objects(ray, scene_objects):
 
     spheres = scene_objects[0]
     planes = scene_objects[1]
@@ -72,19 +67,24 @@ def intersect_objects(ray, scene_objects, depth):
     
     # Find intersection of every sphere and the plane
     # Save the closest one
-    
+
+    # Save every intersection
     for sphere in spheres:
       solutions.append(sphere.intersect_test(ray))
 
+    #for light in lights:
+      #solutions.append(light.intersect_test(ray))
+
+    # iterate through every intersection and save the closest one and associate it with the relevant sphere
     for idx, solution in enumerate(solutions):
+      # keep the solution that has the closest distance to ray origin
       if solution and solution < nearest_solution:
         nearest_solution = solution
         nearest_geometry = spheres[idx]    
 
     #plane intersection
     plane = planes[0]
-    plane_distance = plane_intersection(ray, plane)
-    #distance = plane.intersect_test(ray) # this is bugged?! doesn't even work even if it's the exact same as the plane_intersection function
+    plane_distance = plane.intersect_test(ray)
 
     if plane_distance:
       if plane_distance < nearest_solution:
@@ -92,13 +92,13 @@ def intersect_objects(ray, scene_objects, depth):
       else:
         return Hit(nearest_solution, nearest_geometry, ray.intersection(nearest_solution))
     elif nearest_geometry:
-      return Hit(nearest_solution, nearest_geometry, ray.intersection(nearest_solution))    
+      return Hit(nearest_solution, nearest_geometry, ray.intersection(nearest_solution))
+    
     return None
 
 def trace_ray(ray, scene_objects):  
 
-  #geometry, distance, intersection = intersect_objects(ray, scene_objects, 0)
-  hit_data = intersect_objects(ray, scene_objects, 0)
+  hit_data = intersect_objects(ray, scene_objects)
   
   return hit_data
 
@@ -126,14 +126,14 @@ def compute_color(ray, hit_data, scene_objects):
     l_dir = light.position - intersection_moved
     
     # shadows
-    shadow_ray = Ray(intersection_moved, normalize(l_dir))
+    shadow_ray = Ray(intersection, normalize(l_dir))
     shadow_data = trace_ray(shadow_ray, scene_objects)
-    
-    if shadow_data is not None:
-      sqrt_dist = np.sqrt(length(l_dir))
-      lightning += light.intensity / (4*np.pi*sqrt_dist) # Inverse-square law
-    else:
+
+    if shadow_data and shadow_data.distance > 0.0:
       lightning += 0.05 # softer shadow, better than 0.0
+    else: 
+      sqrt_dist = np.sqrt(length(l_dir))
+      lightning += light.intensity / (4*np.pi*sqrt_dist) # Inverse-square law      
 
   return color*lightning
        
@@ -149,14 +149,14 @@ def main():
     aspect_ratio = float(WIDTH/HEIGHT)
     print("Aspect ratio:", aspect_ratio)
 
-    camera = Camera((0.0, 1.0, 4.0), (0.0, 0.0, 0.0), 90, aspect_ratio, WIDTH, HEIGHT)
+    camera = Camera((0.0, 2.0, 8.0), (0.0, 0.0, 0.0), 90, aspect_ratio, WIDTH, HEIGHT)
     
     # A pixel-array with 3 values for each pixel (RGB)
     # Essential this is a Width x Height with a depth of 3
     # PyGame will read the backbuffer as [X, Y], hence why WIDTH is being used to determine the rows of the matrix
     backbuffer = np.zeros((WIDTH, HEIGHT, 3))
                
-    framebuffer = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), flags=pygame.FULLSCREEN)
+    framebuffer = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT)) #flags=pygame.FULLSCREEN)
     pygame.display.set_caption("Backwards ray-tracing")
 
     render = True
@@ -164,13 +164,13 @@ def main():
 
     # multi-array, first array is for spheres, second array for planes, third for lights
     scene_objects = []
-    scene_objects.append([Sphere(center=(0.0, 0.0, -1.0), radius=1.0, material=Material(1.0, 0.0, (255, 25, 50))),
-                          Sphere(center=(-1.0, 1.0, -4.0), radius=2.0, material=Material(1.0, 0.0, (30, 255, 100))),
-                          Sphere(center=(3.0, 0.0, -1.0), radius=0.1, material=Material(1.0, 0.0, (30, 50, 255)))])
+    scene_objects.append([Sphere(center=(0.0, 0.0, -1.0), radius=1.0, material=Material(1.0, (255, 25, 50))),
+                          Sphere(center=(-1.0, 1.0, -4.0), radius=2.0, material=Material(0.0, (30, 255, 100))),
+                          Sphere(center=(3.0, 0.0, -1.0), radius=0.1, material=Material(0.4, (30, 50, 255)))])
 
-    scene_objects.append([Plane(origin=(0.0, -1.0 , 0.0), normal=(.0, 1.0, .0), material=Material(0.0, 1.0, None, True))])
+    scene_objects.append([Plane(origin=(0.0, -1.0 , 0.0), normal=(.0, 1.0, .0), material=Material(0.0, None, True))])
     
-    scene_objects.append([Light(position=(2.0, 4.0, -2.0), intensity=15.0)])
+    scene_objects.append([Light(position=(0.0, 1.0, 1.0), intensity=10.0, material=(0.0, (255,255,255)))])
 
     while running:               
       
@@ -195,7 +195,7 @@ def main():
             primary_ray = Ray(camera.position, direction)
             hit_data = trace_ray(primary_ray, scene_objects)
             
-            if hit_data is not None:
+            if hit_data:
               
               color = compute_color(primary_ray, hit_data, scene_objects)
               

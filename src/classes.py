@@ -1,27 +1,18 @@
 import numpy as np
 from utility import *
 
+# Neat data structure for hit data
 class Hit:
     def __init__(self, distance, geometry, intersection):
         self.distance = distance
         self.geometry = geometry
         self.intersection = intersection
         self.normal = geometry.get_normal(intersection)
-        
-        #if geometry is not None and intersection is not None:
-         #   self.normal = geometry.get_normal(intersection)
-        #else:
-        #    self.normal = None
-            
-       # if distance is not None:
-       #     self.hit = True
-       # else:
-       #     self.hit = False
-        
+
+# incomplete material class        
 class Material:
-    def __init__(self, reflection, ambient, color, checker=False):        
+    def __init__(self, reflection, color, checker=False):        
         self.reflection = reflection
-        self.ambient = ambient
         if color:
             self.color = np.array([color[0], color[1], color[2]])
         self.checker = checker # checker pattern texture
@@ -74,7 +65,7 @@ class Sphere(Intersectable):
             # return closest intersection
             d1 = (-b + np.sqrt(discriminant)) / (2*a)
             d2 = (-b - np.sqrt(discriminant)) / (2*a)
-            if d1 > 0 and d2 > 0:
+            if d1 > 0.001 and d2 > 0.001: # prevent shadow acne by checking above 0.001
                 return min(d1, d2)
             else:
                 return None
@@ -95,17 +86,18 @@ class Plane(Intersectable):
         pN = self.normal
         pO = self.origin
 
-        #rOY = rO[1] # ray origin y component 
-        #pOY = pO[1] # plane origin y component
-        #rDY = rD[1] # ray direction y component
+        rOY = rO[1] # ray origin y component 
+        pOY = pO[1] # plane origin y component
+        rDY = rD[1] # ray direction y component
 
-        #d = -((rOY - pOY) / rDY)
-        d = -(np.dot(rO, pN)) / np.dot(rD, pN)
-        
-        if d > 0 and d < 1e6:        
-            return d
+        d = -((rOY - pOY) / rDY)
 
-        return -1.0
+        #d = -(np.dot(rO, pN) + 1) / np.dot(rD, pN)
+
+        if d > 0.001 and d < 1e6: #  prevent shadow acne by checking above 0.001
+          return d
+
+        return None
 
     def get_color(self, intersection):
         if self.material.checker:
@@ -113,6 +105,46 @@ class Plane(Intersectable):
 
         return self.material.color
 
+class Light(Intersectable):
+    def __init__(self, position, intensity, material):
+        self.position = np.array(position)
+        self.radius = 0.01
+        self.intensity = intensity
+        self.material = material
+
+    # treat light points as a sphere
+    def intersect_test(self, ray):
+        rD = ray.direction
+        rO = ray.origin
+        sC = self.position
+        sR = self.radius
+        rOsC = rO - sC # origin - light ball position
+
+        a = length(rD)
+        b = 2 * np.dot(rD, rOsC) # b = 2 * rD*rOsC
+        c = np.dot(rOsC, rOsC) - (sR ** sR)  # (rO - sC)^2 - sR^2, dot product with itself will square the vector
+        discriminant = (b**2) - (4*a*c)
+
+        if discriminant < 0:
+            # no solutions
+            return None
+        else:
+            
+            # return closest intersection
+            d1 = (-b + np.sqrt(discriminant)) / (2*a)
+            d2 = (-b - np.sqrt(discriminant)) / (2*a)
+            if d1 > 0.001 and d2 > 0.001: # prevent shadow acne by checking above 0.001
+                return min(d1, d2)
+            else:
+                return None
+
+        
+    def get_color(self, intersection):
+        return self.material.color
+
+    def get_normal(self, intersection):
+        return normalize(intersection - light.position)
+    
 class Ray:
     def __init__(self, origin, direction):
         self.origin = origin
@@ -121,14 +153,9 @@ class Ray:
     def intersection(self, d):
         return self.origin + self.direction * d
 
-class Light:
-    def __init__(self, position, intensity):
-        self.position = np.array(position)
-        self.intensity = intensity        
-
-    def calculate_intensity(self, luminance, light_dir, surf_norm):
-        return self.intensity * luminance / (length(surf_norm) * length(light_dir))
-
+class Scene:
+    def _init__(self, scene_objects):
+        self.scene_objects = scene_objects
 class Viewport:
     def __init__(self, height_ratio, aspect_ratio, image_width, image_height):
         # we want the viewport to have the same aspect ratio as the image itself
