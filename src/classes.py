@@ -22,10 +22,10 @@ class Intersectable:
     def intersect_test(self, ray):
         pass
 
-    def get_color(self, intersection):
+    def get_color(self, intersection=None):
         pass
 
-    def get_normal(self, intersection):
+    def get_normal(self):
         pass
         
 class Sphere(Intersectable):
@@ -37,7 +37,7 @@ class Sphere(Intersectable):
     def get_normal(self, intersection):
         return normalize(intersection - self.center)
         
-    def get_color(self, intersection):
+    def get_color(self, intersection=None):
         if self.material.checker:
             return checker_color(intersection, self.center)
 
@@ -98,7 +98,7 @@ class Plane(Intersectable):
 
         return None
 
-    def get_color(self, intersection):
+    def get_color(self, intersection=None):
         if self.material.checker:
             return checker_color(intersection, self.origin)
 
@@ -132,17 +132,17 @@ class Light(Intersectable):
             # return closest intersection
             d1 = (-b + np.sqrt(discriminant)) / (2*a)
             d2 = (-b - np.sqrt(discriminant)) / (2*a)
-            if d1 > 0.001 and d2 > 0.001: # prevent shadow acne by checking above 0.001
+            if d1 > 1e-10 and d2 > 1e-10: # prevent shadow acne by checking above 0.001
                 return min(d1, d2)
             else:
                 return None
 
         
-    def get_color(self, intersection):
+    def get_color(self, intersection=None):
         return self.material.color
 
     def get_normal(self, intersection):
-        return normalize(intersection - light.position)
+        return normalize(intersection - self.position)
     
 class Ray:
     def __init__(self, origin, direction):
@@ -153,8 +153,20 @@ class Ray:
         return self.origin + self.direction * d
 
 class Scene:
-    def _init__(self, scene_objects):
-        self.scene_objects = scene_objects
+    def __init__(self):
+        self.objects = []
+        self.lights = []
+
+    def add_object(self, obj):
+        self.objects.append(obj)
+
+    def add_light(self, light):
+        self.lights.append(light)
+
+    def get_all_scene_objects(self):
+        return self.lights + self.objects
+    
+
 class Viewport:
     def __init__(self, height_ratio, aspect_ratio, image_width, image_height):
         # we want the viewport to have the same aspect ratio as the image itself
@@ -162,7 +174,7 @@ class Viewport:
         # and -1/aspect_ratio to 1/aspect_ratio in the y-axis
         # these numbers are arbitrary, but it's a common thing to do
         self.width = 1
-        self.height = (1.0 / aspect_ratio) * height_ratio
+        self.height = (1.0 / aspect_ratio)
 
         viewport = (-self.width, -self.height, self.width, self.height) # LEFT, BOTTOM, RIGHT, TOP
         
