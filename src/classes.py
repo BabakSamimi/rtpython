@@ -93,7 +93,6 @@ class Plane(Intersectable):
         d = -((rOY - pOY) / rDY)
 
         #d = -(np.dot(rO, pN) + 1) / np.dot(rD, pN)
-
         if d > 0.001 and d < 1e6: #  prevent shadow acne by checking above 0.001
           return d
 

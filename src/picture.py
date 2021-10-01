@@ -31,7 +31,6 @@ if args.width:
 if args.height:
   HEIGHT = args.height
 
-  
     
 # https://en.wikipedia.org/wiki/Line-plane_intersection          
 def plane_intersection(ray, plane):
