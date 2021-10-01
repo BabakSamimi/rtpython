@@ -1,13 +1,22 @@
 import numpy as np
 from utility import *
 
-
 class Hit:
-    def __init__(self, distance=None, geometry=None, normal=None):
+    def __init__(self, distance, geometry, intersection):
         self.distance = distance
         self.geometry = geometry
-        self.normal = normal
-        self.hit = distance > 0
+        self.intersection = intersection
+        self.normal = geometry.get_normal(intersection)
+        
+        #if geometry is not None and intersection is not None:
+         #   self.normal = geometry.get_normal(intersection)
+        #else:
+        #    self.normal = None
+            
+       # if distance is not None:
+       #     self.hit = True
+       # else:
+       #     self.hit = False
         
 class Material:
     def __init__(self, reflection, ambient, color, checker=False):        
@@ -54,21 +63,21 @@ class Sphere(Intersectable):
 
         a = length(rD)
         b = 2 * np.dot(rD, rOsC) # b = 2 * rD*rOsC
-        c = np.dot(rOsC, rOsC) - sR ** sR  # (rO - sC)^2 - sR^2, dot product with itself will square the vector
+        c = np.dot(rOsC, rOsC) - (sR ** sR)  # (rO - sC)^2 - sR^2, dot product with itself will square the vector
         discriminant = (b**2) - (4*a*c)
 
         if discriminant < 0:
             # no solutions
-            return -1.0
+            return None
         else:
+            
             # return closest intersection
-
             d1 = (-b + np.sqrt(discriminant)) / (2*a)
             d2 = (-b - np.sqrt(discriminant)) / (2*a)
             if d1 > 0 and d2 > 0:
                 return min(d1, d2)
             else:
-                return -1.0
+                return None
 
 class Plane(Intersectable):
     def __init__(self, origin, normal, material):
@@ -103,7 +112,6 @@ class Plane(Intersectable):
             return checker_color(intersection, self.origin)
 
         return self.material.color
-
 
 class Ray:
     def __init__(self, origin, direction):
