@@ -1,5 +1,6 @@
 import numpy as np
 import argparse
+import os
 from utility import *
 from fractions import Fraction
 from pygame.locals import *
@@ -26,7 +27,10 @@ class App:
         self.viewport_aspect_ratio = float(self.viewport_width/self.viewport_height)
         
         self.max_depth = args.max if args.max else 3 # Recursive reflection
-        self.scene = load_scene_file(args.scene) if args.scene else None # Scene
+        
+        self.scene_path = args.scene if args.scene else None
+        self.scene = load_scene_file(self.scene_path) if self.scene_path else Scene() # Scene
+        self.last_stamp = os.stat(self.scene_path).st_mtime
 
     def __str__(self):
         s = """ Application runtime:
@@ -111,12 +115,36 @@ class App:
         camera.z = normalize(z)
         return (True, camera)
 
+    def check_for_scene_update(self):
+        if self.scene_path:
+            new_stamp = os.stat(self.scene_path).st_mtime
+            if new_stamp != self.last_stamp:
+                print("New stamp:", new_stamp)
+                print("Last stamp:", self.last_stamp)
+                self.last_stamp = new_stamp
+                self.scene = load_scene_file(self.scene_path)
+                return True
+            else:
+                return False
+        else:
+            return False
 
 
 class Scene:
-    def __init__(self):
+    def __init__(self, default=True):
         self.objects = []
         self.lights = []
+        
+        # default init
+        if default:
+            self.add_object(Sphere(center=(4.2, 0.5, -0.5), radius=2.0, material=Material(1.0, (255, 25, 50))))
+            self.add_object(Sphere(center=(-2.2, 0.0, 0.0), radius=2.0, material=Material(0.0, (30, 255, 100))))
+            self.add_object(Sphere(center=(0.0, -1.0, 0.5), radius=0.5, material=Material(0.0, (60, 25, 255))))
+            self.add_object(Plane(origin=(1.2, -1.0 , 0.0), normal=(0, 1, 0), material=Material(0.0, None)))
+    
+            self.add_light(Light(position=(6.0, 3.0, -5.0), intensity=1.0, material=Material(0.0, (255,255,255))))
+            self.add_light(Light(position=(0.0, 8.0, 2.0), intensity=4.0, material=Material(0.0, (255,255,255))))
+        
 
     def add_object(self, obj):
         self.objects.append(obj)
