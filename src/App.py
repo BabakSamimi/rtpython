@@ -3,8 +3,10 @@ import argparse
 import os
 from utility import *
 from fractions import Fraction
+from pygame import display
 from pygame.locals import *
 from SceneParser import *
+import pygame
 
 class App:
     def __init__(self, window_width, window_height, title):
@@ -16,21 +18,26 @@ class App:
         self.running = True
         
         parser = argparse.ArgumentParser(description="A ray tracing program")
-        parser.add_argument('-width', metavar='w', type=int, help="Width")
-        parser.add_argument('-height', metavar='h', type=int, help="Height")
-        parser.add_argument('-max', metavar='m', type=int, help="Max recursive depth for reflections")
+        parser.add_argument('-width', metavar='w', type=int, help="Width", default=300)
+        parser.add_argument('-height', metavar='h', type=int, help="Height", default=200)
+        parser.add_argument('-max', metavar='m', type=int, help="Max recursive depth for reflections", default=3)
         parser.add_argument('-scene', metavar='s', type=str, help="load a scene file")
+        parser.add_argument('-f', help="Fullscreen mode", action='store_true')
+        parser.add_argument('-s', help="Save as a screenshot after completion", action='store_true')                
         args = parser.parse_args()
         
-        self.viewport_width = args.width if args.width else 300
-        self.viewport_height = args.height if args.height else 200
+        self.viewport_width = args.width 
+        self.viewport_height = args.height
         self.viewport_aspect_ratio = float(self.viewport_width/self.viewport_height)
         
-        self.max_depth = args.max if args.max else 3 # Recursive reflection
+        self.max_depth = args.max
         
         self.scene_path = args.scene if args.scene else None
         self.scene = load_scene_file(self.scene_path) if self.scene_path else Scene() # Scene
         self.last_stamp = os.stat(self.scene_path).st_mtime
+
+        self.fullscreen = args.f
+        self.screenshot = args.s
 
     def __str__(self):
         s = """ Application runtime:
@@ -41,6 +48,12 @@ class App:
                    self.viewport_width, self.viewport_height, *Fraction(self.viewport_aspect_ratio).as_integer_ratio(),
                    self.title)
         return s
+
+    def create_framebuffer(self):
+        if self.fullscreen:
+            return pygame.display.set_mode((self.window_width, self.window_height), flags=pygame.FULLSCREEN|pygame.HWSURFACE|pygame.DOUBLEBUF)
+
+        return pygame.display.set_mode((self.window_width, self.window_height))
 
     def process_events(self, camera):
 
@@ -119,8 +132,6 @@ class App:
         if self.scene_path:
             new_stamp = os.stat(self.scene_path).st_mtime
             if new_stamp != self.last_stamp:
-                print("New stamp:", new_stamp)
-                print("Last stamp:", self.last_stamp)
                 self.last_stamp = new_stamp
                 self.scene = load_scene_file(self.scene_path)
                 return True
@@ -137,6 +148,7 @@ class Scene:
         
         # default init
         if default:
+            print("Loading default scene")
             self.add_object(Sphere(center=(4.2, 0.5, -0.5), radius=2.0, material=Material(1.0, (255, 25, 50))))
             self.add_object(Sphere(center=(-2.2, 0.0, 0.0), radius=2.0, material=Material(0.0, (30, 255, 100))))
             self.add_object(Sphere(center=(0.0, -1.0, 0.5), radius=0.5, material=Material(0.0, (60, 25, 255))))

@@ -9,11 +9,11 @@ def load_scene_file(path):
     try:
         with open(path) as f:
             for line in f:
-                m = re.findall(r'(\d+\.\d|\d+)', line)
+                m = re.findall(r'(-?\d+\.\d|\d+)', line)
                 if m:
                     if "Sphere:" in line:
                         print("Sphere:", m)
-                        if check_match_size(m, 8):
+                        if expected_match_size(m, 8):
                             scene.add_object(Sphere(
                                 center=(float(m[0]), float(m[1]), float(m[2])),
                                 radius=float(m[3]),
@@ -23,7 +23,7 @@ def load_scene_file(path):
 
                     elif "Plane:" in line:
                         print("Plane:", m)
-                        if check_match_size(m, 8):                                             
+                        if expected_match_size(m, 8):                                             
                             scene.add_object(Plane(
                                 origin=(float(m[0]), float(m[1]), float(m[2])),
                                 normal=(float(m[3]), float(m[4]), float(m[5])),
@@ -31,8 +31,8 @@ def load_scene_file(path):
                                 float(m[6]), None)))
 
                     elif "Light:" in line:
-                        print("Lighat:", m)
-                        if check_match_size(m, 8):                                         
+                        print("Light:", m)
+                        if expected_match_size(m, 8):                                         
                             scene.add_light(Light(
                                 position=(float(m[0]), float(m[1]), float(m[2])),
                                 intensity=float(m[3]),
@@ -50,7 +50,7 @@ def load_scene_file(path):
     return scene
 
 
-def check_match_size(m, expected_size):
+def expected_match_size(m, expected_size):
     if len(m) == expected_size:
         return True
 

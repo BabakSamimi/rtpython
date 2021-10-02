@@ -41,18 +41,15 @@ def intersect_objects(ray, scene_objects):
     
     return None
 
-def compute_color(ray, hit_data, scene):
-
+def compute_color(ray, hit_data, scene, depth):
+    
     geometry = hit_data.geometry
-
-    if type(geometry) is Light:
-      return geometry.get_color()
 
     intersection = ray.intersection(hit_data.distance)    
     # nudge it away a little from the intersection point
     intersection_moved = intersection + (1e-7 * hit_data.normal) # NOTE, this is not a normalized vector
 
-    lightning = 0.0 # start with an arbitrary ambient light value
+    lightning = 0.0
     color = geometry.get_color(intersection)
 
     # lightning computation from point-based lights
@@ -66,7 +63,7 @@ def compute_color(ray, hit_data, scene):
       # check if our shadow ray hit something
       # check if hit distance is less than the length between the light and the original intersection
       if shadow_data and shadow_data.distance < length(light.position - intersection_moved):
-        lightning = 0.0
+          pass
       else:
         # We're modeling a spherical light source
         # thus our attenuation can be based on, for instance, it's distance
@@ -77,7 +74,13 @@ def compute_color(ray, hit_data, scene):
         # this isn't really possibly to calculate on planes at the moment
         if type(geometry) is Sphere:
           normal_ratio = clamp(np.dot(hit_data.normal, l_dir), 0.0, np.inf)
-          lightning *= normal_ratio
+          #lightning *= normal_ratio
+        
+    if depth > 0 and type(geometry) is not Plane:
+        reflected_ray = Ray(intersection_moved, reflect(intersection_moved, hit_data.normal))
+        reflected_data = trace_ray(reflected_ray, scene.get_all_scene_objects())
+        if reflected_data:
+            color = color + compute_color(reflected_ray, reflected_data, scene, depth-1)*geometry.material.reflection
 
     return color*lightning
 

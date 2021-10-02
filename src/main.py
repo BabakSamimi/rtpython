@@ -4,6 +4,8 @@
 # movement doesn't work properly because of this
 
 from time import perf_counter
+import os
+from datetime import datetime
 import pygame
 import numpy as np
 
@@ -27,16 +29,18 @@ def main():
     aspect_ratio = float(app.viewport_width/app.viewport_height)
     print(app)
 
-    camera = Camera((0.0, 2.0, 12.0), (0.0, 0.0, 0.0), 90, aspect_ratio, app.viewport_width, app.viewport_height)
+    camera = Camera((0.0, 1.0, 5.0), (0.0, 0.0, 0.0), 90, aspect_ratio, app.viewport_width, app.viewport_height)
     
     # A pixel-array with 3 values for each pixel (RGB)
     # Essential this is a Width x Height with a depth of 3
     # PyGame will read the backbuffer as [X, Y], hence why WIDTH is being used to determine the rows of the matrix
     backbuffer = np.zeros((app.viewport_width, app.viewport_height, 3))
-               
-    framebuffer = pygame.display.set_mode((app.window_width, app.window_height)) #flags=pygame.FULLSCREEN)
+      
+    framebuffer = app.create_framebuffer()
+    screenshotbuffer = framebuffer
+    
     pygame.display.set_caption(app.title)
-
+    print(pygame.display.Info())
     render = True
 
     scene = app.scene
@@ -57,11 +61,13 @@ def main():
             color = np.zeros((3))
             
             primary_ray = Ray(camera.position, direction)
+            
+            depth = app.max_depth          
             hit_data = trace_ray(primary_ray, scene.get_all_scene_objects())
             
             if hit_data:
-              
-              color = compute_color(primary_ray, hit_data, scene)
+
+              color = compute_color(primary_ray, hit_data, scene, depth)
               
               color[0] = clamp(color[0], 0, 255)
               color[1] = clamp(color[1], 0, 255)
@@ -78,9 +84,12 @@ def main():
           #temp_framebuffer_upscaled = pygame.transform.scale(temp_framebuffer, (int(WINDOW_WIDTH),int(WINDOW_HEIGHT)) )
           center_x, center_y = (int(app.window_width/4), int((app.window_height/4)))
 
-          text, textrect = print_camera_info(camera, font)
+          
 
-          framebuffer.blit(temp_framebuffer_smooth_upscaled, ( (0, 0)))        
+          framebuffer.blit(temp_framebuffer_smooth_upscaled, ( (0, 0)))
+          screenshotbuffer = temp_framebuffer_smooth_upscaled # save only data of the scene
+          
+          text, textrect = print_camera_info(camera, font)
           framebuffer.blit(text, textrect)
           
           text, textrect = progress_text(y_index, font, app.viewport_width, app.viewport_height)
@@ -98,6 +107,10 @@ def main():
         elapsed_seconds = (end_counter - start_counter)
         print("It took", elapsed_seconds, "seconds to render")
         render = False
+
+        if app.screenshot:
+          print("Saving final image")
+          pygame.image.save(screenshotbuffer, "screenshots/" + datetime.now().strftime('%Y-%m-%d-%H-%M-%S') + ".png")
         
       render, camera = app.process_events(camera)
 

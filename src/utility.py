@@ -23,6 +23,10 @@ def clamp(a, min_val, max_val):
 def lerp(a, b, t):
   return (1-t) * a + t * b
 
+# Returns a normalized reflected ray
+def reflect(vector, normal):
+  return vector - 2*np.dot(vector,normal) * normal
+
 def progress_text(y_index, font, width, height):
   percentage = ((y_index+1) / (height)) * 100
   progress = "Progress: " + '{:.2f}'.format(percentage) + "%"
