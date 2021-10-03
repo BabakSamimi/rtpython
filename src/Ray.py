@@ -63,7 +63,7 @@ def compute_color(ray, hit_data, scene, depth):
       # check if our shadow ray hit something
       # check if hit distance is less than the length between the light and the original intersection
       if shadow_data and shadow_data.distance < length(light.position - intersection_moved):
-          pass
+          continue
       else:
         # We're modeling a spherical light source
         # thus our attenuation can be based on, for instance, it's distance
@@ -76,8 +76,8 @@ def compute_color(ray, hit_data, scene, depth):
           normal_ratio = clamp(np.dot(hit_data.normal, l_dir), 0.0, np.inf)
           #lightning *= normal_ratio
         
-    if depth > 0 and type(geometry) is not Plane:
-        reflected_ray = Ray(intersection_moved, reflect(intersection_moved, hit_data.normal))
+    if depth > 0:
+        reflected_ray = Ray(intersection_moved, normalize(reflect(intersection_moved, hit_data.normal)))
         reflected_data = trace_ray(reflected_ray, scene.get_all_scene_objects())
         if reflected_data:
             color = color + compute_color(reflected_ray, reflected_data, scene, depth-1)*geometry.material.reflection

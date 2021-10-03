@@ -39,24 +39,21 @@ class Sphere(Intersectable):
         sR = self.radius
         rOsC = rO - sC # origin - sphere
 
-        a = length(rD)
+        #a = length(rD)
         b = 2 * np.dot(rD, rOsC) # b = 2 * rD*rOsC
         c = np.dot(rOsC, rOsC) - (sR ** sR)  # (rO - sC)^2 - sR^2, dot product with itself will square the vector
-        discriminant = (b**2) - (4*a*c)
+        discriminant = (b**2) - (4*c)
 
-        if discriminant < 0:
-            # no solutions
-            return None
-        else:
-            
-            # return closest intersection
-            d1 = (-b + np.sqrt(discriminant)) / (2*a)
-            d2 = (-b - np.sqrt(discriminant)) / (2*a)
+        if discriminant > 0:
+            # solutions found
+            sqrt = np.sqrt(discriminant)
+            d1 = (-b + sqrt) / (2)
+            d2 = (-b - sqrt) / (2)
             if d1 > 0.001 and d2 > 0.001: # prevent shadow acne by checking above 0.001
                 return min(d1, d2)
-            else:
-                return None
-
+            
+        return None
+    
 class Plane(Intersectable):
     def __init__(self, origin, normal, material):
         self.origin = np.array(origin)
@@ -81,6 +78,7 @@ class Plane(Intersectable):
         d = -((rOY - pOY) / rDY)
 
         #d = -(np.dot(rO, pN) + 1) / np.dot(rD, pN)
+        
         if d > 0.001 and d < 1e6: #  prevent shadow acne by checking above 0.001
           return d
 
@@ -121,23 +119,20 @@ class Light(Intersectable):
         sR = self.radius
         rOsC = rO - sC # origin - light ball position
 
-        a = length(rD)
+        #a = length(rD)
         b = 2 * np.dot(rD, rOsC) # b = 2 * rD*rOsC
         c = np.dot(rOsC, rOsC) - (sR ** sR)  # (rO - sC)^2 - sR^2, dot product with itself will square the vector
-        discriminant = (b**2) - (4*a*c)
+        discriminant = (b**2) - (4*c)
 
-        if discriminant < 0:
-            # no solutions
-            return None
-        else:
-            
-            # return closest intersection
-            d1 = (-b + np.sqrt(discriminant)) / (2*a)
-            d2 = (-b - np.sqrt(discriminant)) / (2*a)
-            if d1 > 1e-10 and d2 > 1e-10: # prevent shadow acne by checking above 0.001
+        if discriminant > 0:
+            # solutions found
+            sqrt = np.sqrt(discriminant)
+            d1 = (-b + sqrt) / (2)
+            d2 = (-b - sqrt) / (2)
+            if d1 > 0.001 and d2 > 0.001: # prevent shadow acne by checking above 0.001
                 return min(d1, d2)
-            else:
-                return None
+            
+        return None
 
         
     def get_color(self, intersection=None):

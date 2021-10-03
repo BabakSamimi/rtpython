@@ -16,7 +16,7 @@ from App import *
 
 WINDOW_WIDTH = 1200
 WINDOW_HEIGHT = 800
-       
+
 def main():
     app = App(WINDOW_WIDTH, WINDOW_HEIGHT, "Ray tracing")
     pygame.init()
@@ -29,7 +29,7 @@ def main():
     aspect_ratio = float(app.viewport_width/app.viewport_height)
     print(app)
 
-    camera = Camera((0.0, 1.0, 5.0), (0.0, 0.0, 0.0), 90, aspect_ratio, app.viewport_width, app.viewport_height)
+    camera = Camera((0.0, 0.0, 5.0), (0.0, 0.0, 0.0), 90, aspect_ratio, app.viewport_width, app.viewport_height)
     
     # A pixel-array with 3 values for each pixel (RGB)
     # Essential this is a Width x Height with a depth of 3
@@ -45,6 +45,9 @@ def main():
 
     scene = app.scene
 
+    #x = np.tile(camera.viewport.coordinates[0], app.viewport_height)
+    #y = np.repeat(camera.viewport.coordinates[1], app.viewport_width)
+    
     while app.running:
       
       if render:
@@ -77,14 +80,11 @@ def main():
 
 
           temp_framebuffer = pygame.surfarray.make_surface(backbuffer)
-          #temp_framebuffer_upscaled = pygame.transform.scale(temp_framebuffer, (int(WINDOW_WIDTH/2),int(WINDOW_HEIGHT/2)))
 
           # create an upscaled version of our frame that is half the size of the window dimensions
           temp_framebuffer_smooth_upscaled = pygame.transform.smoothscale(temp_framebuffer, (int(app.window_width),int(app.window_height)) )
           #temp_framebuffer_upscaled = pygame.transform.scale(temp_framebuffer, (int(WINDOW_WIDTH),int(WINDOW_HEIGHT)) )
           center_x, center_y = (int(app.window_width/4), int((app.window_height/4)))
-
-          
 
           framebuffer.blit(temp_framebuffer_smooth_upscaled, ( (0, 0)))
           screenshotbuffer = temp_framebuffer_smooth_upscaled # save only data of the scene
@@ -119,7 +119,6 @@ def main():
           scene = app.scene
           render = True
 
-    
 
     
 if __name__ == '__main__':

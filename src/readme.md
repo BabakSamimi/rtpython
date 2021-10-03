@@ -19,5 +19,5 @@ Examples:
 
 `python main.py -scene "scenes/scene01.scene" -width 100 -height 100`
 
-# Result (1200x800) (takes 10 minutes to render)
-![1920x1080](screenshots/2021-10-02-19-37-06.png)
+# Result (1200x800) (takes 2.8 minutes to render)
+![1920x1080](2021-10-03-12-42-57.png)
