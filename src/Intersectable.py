@@ -20,12 +20,12 @@ class Intersectable:
         
 class Sphere(Intersectable):
     def __init__(self, center, radius, material):
-        self.center = np.array(center) # 3D coordinates of sphere center
+        self.origin = np.array(center) # 3D coordinates of sphere center
         self.radius = radius
         self.material = material
 
     def get_normal(self, intersection):
-        return normalize(intersection - self.center)
+        return normalize(intersection - self.origin)
         
     def get_color(self, intersection=None):
         return self.material.color
@@ -33,26 +33,7 @@ class Sphere(Intersectable):
     # treat sphere intersection as a quadratic function to solve, f = ax^2 + bx + c
     # https://en.wikipedia.org/wiki/Quadratic_equation#Quadratic_formula_and_its_derivation
     def intersect_test(self, ray):
-        rD = ray.direction
-        rO = ray.origin
-        sC = self.center
-        sR = self.radius
-        rOsC = rO - sC # origin - sphere center
-
-        #a = length(rD)
-        b = 2 * np.dot(rD, rOsC) # b = 2 * rD*rOsC
-        c = length(rOsC) ** 2 - (sR ** 2)  # (rO - sC)^2 - sR^2, dot product with itself will square the vector
-        discriminant = (b**2) - (4*c)
-
-        if discriminant > 0:
-            # solutions found
-            sqrt = np.sqrt(discriminant)
-            d1 = (-b + sqrt) / (2)
-            d2 = (-b - sqrt) / (2)
-            if d1 > 0.001 and d2 > 0.001: # prevent shadow acne by checking above 0.001
-                return min(d1, d2)
-            
-        return None
+        return solve_quadratic_equation(ray, self)
     
 class Plane(Intersectable):
     def __init__(self, origin, normal, material):
@@ -106,37 +87,17 @@ class Plane(Intersectable):
 
 class Light(Intersectable):
     def __init__(self, position, intensity, material):
-        self.position = np.array(position)
+        self.origin = np.array(position)
         self.radius = 0.1
         self.intensity = intensity
         self.material = material
 
     # treat light points as a sphere
     def intersect_test(self, ray):
-        rD = ray.direction
-        rO = ray.origin
-        sC = self.position
-        sR = self.radius
-        rOsC = rO - sC # origin - sphere center
-
-        #a = length(rD)
-        b = 2 * np.dot(rD, rOsC) # b = 2 * rD*rOsC
-        c = length(rOsC) ** 2 - (sR ** 2)  # (rO - sC)^2 - sR^2, dot product with itself will square the vector
-        discriminant = (b**2) - (4*c)
-
-        if discriminant > 0:
-            # solutions found
-            sqrt = np.sqrt(discriminant)
-            d1 = (-b + sqrt) / (2)
-            d2 = (-b - sqrt) / (2)
-            if d1 > 0.001 and d2 > 0.001: # prevent shadow acne by checking above 0.001
-                return min(d1, d2)
-            
-        return None
-
+        return solve_quadratic_equation(ray, self)
         
     def get_color(self, intersection=None):
         return self.material.color
 
     def get_normal(self, intersection):
-        return normalize(intersection - self.position)
+        return normalize(intersection - self.origin)

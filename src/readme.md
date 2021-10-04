@@ -11,17 +11,9 @@ Run with: `python main.py`
 
 `-scene` loads a scene-file to render
 
-`-max` specify max depth for reflections
+`-max` specify max depth for reflections, defaults to 3
 
 `-hm` runs the program in headless mode, meaning no window will be created, should be used with the `-s` flag
-
-## Primitive camera movement:
-**Camera was not done properly this time around.**
-
-`WASD` to move the camera around
-
-`Arrow keys` to look up and down (left and right is not working properly)
-
 Examples:
 
 `python main.py -f -s -scene "scenes/scene01.scene"`
@@ -30,5 +22,18 @@ Examples:
 
 `python main.py -scene "scenes/scene01.scene" -width 1200 -height 800 -s -hm`
 
-# Result (1920x1080, 9.8 minutes with 8 reflection rays as max depth)
+# Primitive camera movement:
+**Camera code was not done properly this time around.**
+
+`WASD` to move the camera around
+
+`Arrow keys` to look up and down (left and right is not working properly)
+
+# Scene files
+Check out the `scenes`-folder for an example on how to make a simple scene
+
+# Result #1 (1920x1080, 9.8 minutes with 8 reflection rays as max depth)
 ![1920x1080](screenshots/finale.png)
+
+# Result #2 (4K, 40 minutes with 10 reflection rays as max depth)
+![3840x2160](screenshots/4K.png)

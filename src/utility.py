@@ -2,6 +2,28 @@ import numpy as np
 import pygame
 from pygame.locals import *
 
+def solve_quadratic_equation(ray, sphere):
+   rD = ray.direction
+   rO = ray.origin
+   sC = sphere.origin
+   sR = sphere.radius
+   rOsC = rO - sC # origin - sphere center
+
+   #a = length(rD)
+   b = 2 * np.dot(rD, rOsC) # b = 2 * rD*rOsC
+   c = length(rOsC) ** 2 - (sR ** 2)  # (rO - sC)^2 - sR^2, dot product with itself will square the vector
+   discriminant = (b**2) - (4*c)
+
+   if discriminant > 0:
+       # solutions found
+       sqrt = np.sqrt(discriminant)
+       d1 = (-b + sqrt) / (2)
+       d2 = (-b - sqrt) / (2)
+       if d1 > 0.001 and d2 > 0.001: # prevent shadow acne by checking above 0.001
+           return min(d1, d2)
+
+   return None
+
 # https://en.wikipedia.org/wiki/Gamma_correction
 def gamma_correction(color):
   gamma = 2.0 # average gamma for most displays, mac uses 1.8 and some uses 2.2

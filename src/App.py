@@ -83,9 +83,6 @@ class App:
 
             render, camera = self.process_input(pygame.key.get_pressed(), camera)
 
-          if event.type == pygame.MOUSEBUTTONDOWN and pygame.mouse.get_focused() and pygame.mouse.get_pressed()[0]:              
-            render, camera = self.process_mouse_input(pygame.mouse.get_rel(), camera)
-
         return render, camera
 
     def process_input(self, keys, camera):

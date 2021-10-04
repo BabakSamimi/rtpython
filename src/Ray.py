@@ -78,7 +78,7 @@ def compute_color(ray, hit_data, scene, depth):
 
     # lightning computation from point-based lights
     for light in scene.lights:
-      l_dir = light.position - intersection_moved
+      l_dir = light.origin - intersection_moved
 
       # shadows
       shadow_ray = Ray(intersection_moved, normalize(l_dir))
@@ -86,7 +86,7 @@ def compute_color(ray, hit_data, scene, depth):
 
       # check if our shadow ray hit something
       # check if hit distance is less than the length between the light and the original intersection
-      if shadow_data and shadow_data.distance < length(light.position - intersection_moved):
+      if shadow_data and shadow_data.distance < length(light.origin - intersection_moved):
           continue
       else:
         # We're modeling a spherical light source

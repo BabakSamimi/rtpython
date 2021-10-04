@@ -4,7 +4,6 @@
 # movement doesn't work properly because of this
 
 from time import perf_counter
-import os
 from datetime import datetime
 import pygame
 import numpy as np
@@ -26,7 +25,6 @@ def main():
     font = pygame.font.Font(None, int(38))
     
     print("Smooth scale bckend:", pygame.transform.get_smoothscale_backend())
-
 
     camera = Camera((0.0, 0.0, 3.0), (0.0, 0.0, -1.0), app.viewport_aspect_ratio, app.viewport_width, app.viewport_height)
     
@@ -90,9 +88,7 @@ def main():
         if app.check_for_scene_update():
             scene = app.scene
             render = True
-            
-    
-        
+
         # end of game loop
         
 # end of main    
