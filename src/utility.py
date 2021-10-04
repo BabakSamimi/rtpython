@@ -2,6 +2,8 @@ import numpy as np
 import pygame
 from pygame.locals import *
 
+# treat sphere intersection as a quadratic function to solve, f = ax^2 + bx + c
+# https://en.wikipedia.org/wiki/Quadratic_equation#Quadratic_formula_and_its_derivation
 def solve_quadratic_equation(ray, sphere):
    rD = ray.direction
    rO = ray.origin
@@ -11,7 +13,7 @@ def solve_quadratic_equation(ray, sphere):
 
    #a = length(rD)
    b = 2 * np.dot(rD, rOsC) # b = 2 * rD*rOsC
-   c = length(rOsC) ** 2 - (sR ** 2)  # (rO - sC)^2 - sR^2, dot product with itself will square the vector
+   c = length(rOsC) ** 2 - (sR ** 2)  # (rO - sC)^2 - sR^2,
    discriminant = (b**2) - (4*c)
 
    if discriminant > 0:
@@ -23,11 +25,6 @@ def solve_quadratic_equation(ray, sphere):
            return min(d1, d2)
 
    return None
-
-# https://en.wikipedia.org/wiki/Gamma_correction
-def gamma_correction(color):
-  gamma = 2.0 # average gamma for most displays, mac uses 1.8 and some uses 2.2
-  return np.array([color[0]**(1/gamma), color[1]**(1/gamma), color[2]**(1/gamma)])
 
 def normalize(vec):
   # divides each component of vec with its length, normalizing it

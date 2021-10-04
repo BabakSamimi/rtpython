@@ -35,8 +35,9 @@ class App:
         self.max_depth = args.max
         
         self.scene_path = args.scene if args.scene else None
-        self.scene = load_scene_file(self.scene_path) if self.scene_path else Scene() # Scene
-        self.last_stamp = os.stat(self.scene_path).st_mtime
+        self.scene = load_scene_file(self.scene_path) if self.scene_path else Scene()
+        if self.scene_path:
+            self.last_stamp = os.stat(self.scene_path).st_mtime
 
         self.fullscreen = args.f
         self.screenshot = args.s
@@ -132,15 +133,16 @@ class Scene:
         # default init
         if default:
             print("Loading default scene")
-            self.add_object(Sphere(center=(4.2, 0.5, -0.5), radius=2.0, material=Material(1.0, (255, 25, 50))))
-            self.add_object(Sphere(center=(-2.2, 0.0, 0.0), radius=2.0, material=Material(0.0, (30, 255, 100))))
-            self.add_object(Sphere(center=(0.0, -1.0, 0.5), radius=0.5, material=Material(0.0, (60, 25, 255))))
-            self.add_object(Plane(origin=(1.2, -1.0 , 0.0), normal=(0, 1, 0), material=Material(0.0, None)))
+            self.add_object(Sphere(center=(-9.0, 3.2, -12.0), radius=4.0, material=Material(1.0, (255, 0,0))))
+            self.add_object(Sphere(center=(-0.5, 2.0, -8.0), radius=3.0, material=Material(1.0, (0, 255, 0))))
+            self.add_object(Sphere(center=(4.0, 1.0, -6.0), radius=2.0, material=Material(1.0, (0, 0, 255))))
+            self.add_object(Sphere(center=(5.0, 0.0, -3.0), radius=1.0, material=Material(1.0, (255, 255, 0))))
+            
+            self.add_object(Plane(origin=(0.0, -1.0 , 0.0), normal=(0, 1, 0), material=Material(1.0, None)))
     
-            self.add_light(Light(position=(6.0, 3.0, -5.0), intensity=1.0, material=Material(0.0, (255,255,255))))
-            self.add_light(Light(position=(0.0, 8.0, 2.0), intensity=4.0, material=Material(0.0, (255,255,255))))
+            self.add_light(Light(position=(6.0, 4.0, -3.0), intensity=10.0, material=Material(0.0, (255,255,255))))
+            self.add_light(Light(position=(0.0, 4.0, 0.0), intensity=7.0, material=Material(0.0, (255,255,255))))
         
-
     def add_object(self, obj):
         self.objects.append(obj)
 

@@ -30,8 +30,6 @@ class Sphere(Intersectable):
     def get_color(self, intersection=None):
         return self.material.color
 
-    # treat sphere intersection as a quadratic function to solve, f = ax^2 + bx + c
-    # https://en.wikipedia.org/wiki/Quadratic_equation#Quadratic_formula_and_its_derivation
     def intersect_test(self, ray):
         return solve_quadratic_equation(ray, self)
     

@@ -5,9 +5,9 @@ Run with: `python main.py`
 
 `-f` opens the program in fullscreen
 
-`-width` width for viewport
+`-width` width for viewport, default to 300
 
-`-height` height for viewport
+`-height` height for viewport, defaults to 200
 
 `-scene` loads a scene-file to render
 

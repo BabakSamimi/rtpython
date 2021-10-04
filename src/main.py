@@ -24,7 +24,7 @@ def main():
     pygame.display.set_caption(app.title)
     font = pygame.font.Font(None, int(38))
     
-    print("Smooth scale bckend:", pygame.transform.get_smoothscale_backend())
+    print("Smooth scale backend:", pygame.transform.get_smoothscale_backend())
 
     camera = Camera((0.0, 0.0, 3.0), (0.0, 0.0, -1.0), app.viewport_aspect_ratio, app.viewport_width, app.viewport_height)
     
