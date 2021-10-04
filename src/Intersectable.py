@@ -6,7 +6,7 @@ class Material:
     def __init__(self, reflection, color):        
         self.reflection = reflection
         self.color = np.array([color[0], color[1], color[2]]) if color else None
-
+        
 class Intersectable:
     
     def intersect_test(self, ray):

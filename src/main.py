@@ -26,7 +26,7 @@ def main():
     
     print("Smooth scale backend:", pygame.transform.get_smoothscale_backend())
 
-    camera = Camera((0.0, 0.0, 3.0), (0.0, 0.0, -1.0), app.viewport_aspect_ratio, app.viewport_width, app.viewport_height)
+    camera = Camera((0.0, 0.0, 1.0), (0.0, 0.5, -1.0), app.viewport_aspect_ratio, app.viewport_width, app.viewport_height)
     
     # A pixel-array with 3 values for each pixel (RGB)
     # Essential this is a Width x Height with a depth of 3
