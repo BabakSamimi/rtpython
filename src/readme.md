@@ -13,11 +13,18 @@ Run with: `python main.py`
 
 `-max` specify max depth for reflections
 
+## Primitive camera movement:
+**Camera was not done properly this time around.**
+
+`WASD` to move the camera around
+
+`Arrow keys` to look up and down (left and right is not working properly)
+
 Examples:
 
 `python main.py -f -s -scene "scenes/scene01.scene"`
 
 `python main.py -scene "scenes/scene01.scene" -width 100 -height 100`
 
-# Result (1200x800) (takes 2.8 minutes to render)
-![1920x1080](2021-10-03-12-42-57.png)
+# Result (1920x1080, 9.8 minutes with 8 reflection rays as max depth)
+![1920x1080](screenshots/finale.png)

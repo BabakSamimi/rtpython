@@ -29,22 +29,23 @@ def reflect(vector, normal):
 
 def progress_text(y_index, font, width, height):
   percentage = ((y_index+1) / (height)) * 100
-  progress = "Progress: " + '{:.2f}'.format(percentage) + "%"
+  progress = "Progress: " +  "%.2f" % percentage + "%"
   
   color = (lerp(0, 255, y_index/(width-1)), 0, 255)
   
   text = font.render(progress, False, color, (0,0,0))
-  textrect = text.get_rect(left=0, top=50)
+  textrect = text.get_rect(left=10, top=50)
   return (text, textrect)
 
 def print_camera_info(camera, font):
   color = (255, 255, 255)
   formatter = {'float_kind': lambda x: "%.2f" % x}
+  
   position = np.array2string(camera.position, precision=4, separator=',', formatter=formatter)
   look_to = np.array2string(camera.look_to, precision=4, separator=',', formatter=formatter)
 
   info = "Position: " + position + ", Looking at: " + look_to
-  
+
   text = font.render(info, False, color, (0,0,0))
   textpos = text.get_rect(left=0, top=0)
   return (text, textpos)

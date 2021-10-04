@@ -18,10 +18,34 @@ class Ray:
     def intersection(self, d):
         return self.origin + self.direction * d
 
+
+def calculate_pixel(x, y, camera, scene, depth):
+    # Pygame seems to be using the origin at the upper left corner,
+    # so we have to make y negative in order to respect a right-handed coordinate system (3D)
+    pixel = np.array([x,-y,0])
+    direction = normalize(pixel - camera.z) # figure out the direction of the ray
+
+    color = np.zeros((3))
+
+    primary_ray = Ray(camera.position, direction)
+
+    hit_data = trace_ray(primary_ray, scene.get_all_scene_objects())
+
+    if hit_data:
+
+      color = compute_color(primary_ray, hit_data, scene, depth)
+
+      color[0] = clamp(color[0], 0, 255)
+      color[1] = clamp(color[1], 0, 255)
+      color[2] = clamp(color[2], 0, 255)            
+
+    return color
+    
+
 def intersect_objects(ray, scene_objects):
 
     solutions = []
-    nearest_solution = np.inf # apparently this exists!
+    nearest_solution = np.inf
     nearest_geometry = None
     
     # Find the cloests intersection of every intersectable object

@@ -37,11 +37,11 @@ class Sphere(Intersectable):
         rO = ray.origin
         sC = self.center
         sR = self.radius
-        rOsC = rO - sC # origin - sphere
+        rOsC = rO - sC # origin - sphere center
 
         #a = length(rD)
         b = 2 * np.dot(rD, rOsC) # b = 2 * rD*rOsC
-        c = np.dot(rOsC, rOsC) - (sR ** sR)  # (rO - sC)^2 - sR^2, dot product with itself will square the vector
+        c = length(rOsC) ** 2 - (sR ** 2)  # (rO - sC)^2 - sR^2, dot product with itself will square the vector
         discriminant = (b**2) - (4*c)
 
         if discriminant > 0:
@@ -62,7 +62,7 @@ class Plane(Intersectable):
         self.checker = False if self.material.color else True            
 
     def get_normal(self, intersection):
-        return normalize(intersection - self.origin)
+        return normalize(self.normal)
         
     def intersect_test(self, ray):
         rD = ray.direction
@@ -107,7 +107,7 @@ class Plane(Intersectable):
 class Light(Intersectable):
     def __init__(self, position, intensity, material):
         self.position = np.array(position)
-        self.radius = 0.01
+        self.radius = 0.1
         self.intensity = intensity
         self.material = material
 
@@ -117,11 +117,11 @@ class Light(Intersectable):
         rO = ray.origin
         sC = self.position
         sR = self.radius
-        rOsC = rO - sC # origin - light ball position
+        rOsC = rO - sC # origin - sphere center
 
         #a = length(rD)
         b = 2 * np.dot(rD, rOsC) # b = 2 * rD*rOsC
-        c = np.dot(rOsC, rOsC) - (sR ** sR)  # (rO - sC)^2 - sR^2, dot product with itself will square the vector
+        c = length(rOsC) ** 2 - (sR ** 2)  # (rO - sC)^2 - sR^2, dot product with itself will square the vector
         discriminant = (b**2) - (4*c)
 
         if discriminant > 0:
