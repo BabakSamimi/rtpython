@@ -1,8 +1,3 @@
-# TODO:
-# Create camera class, seperate the distinction between
-# camera position and origin of world
-# movement doesn't work properly because of this
-
 from time import perf_counter
 from datetime import datetime
 import pygame
@@ -26,7 +21,7 @@ def main():
     
     print("Smooth scale backend:", pygame.transform.get_smoothscale_backend())
 
-    camera = Camera((0.0, 0.0, 1.0), (0.0, 0.5, -1.0), app.viewport_aspect_ratio, app.viewport_width, app.viewport_height)
+    camera = Camera((0.0, 0.0, 1.0), (0.0, 0.5, -1.0), app.viewport_width, app.viewport_height)
     
     # A pixel-array with 3 values for each pixel (RGB)
     # Essential this is a Width x Height with a depth of 3
@@ -62,7 +57,7 @@ def main():
                     text, textrect = print_camera_info(camera, font)
                     framebuffer.blit(text, textrect)
 
-                    text, textrect = progress_text(y_index, font, app.viewport_width, app.viewport_height)
+                    text, textrect = progress_text(y_index, font, app.window_width, app.window_height)
                     framebuffer.blit(text, textrect)
 
                     pygame.display.update()

@@ -44,7 +44,7 @@ def load_scene_file(path):
         
     except Error:
         print("Error loading scene file!")
-        return App.Scene() # default init
+        return App.Scene(default=True) # default init
     
 
     print("Loaded scene file!")

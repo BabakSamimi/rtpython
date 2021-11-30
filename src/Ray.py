@@ -18,7 +18,6 @@ class Ray:
     def intersection(self, d):
         return self.origin + self.direction * d
 
-
 def calculate_pixel(x, y, camera, scene, depth):
     # Pygame seems to be using the origin at the upper left corner,
     # so we have to make y negative in order to respect a right-handed coordinate system (3D)
@@ -53,7 +52,7 @@ def intersect_objects(ray, scene_objects):
     for obj in scene_objects:
       solutions.append(obj.intersect_test(ray))
 
-    # iterate through every intersection and save the closest one and associate it with the relevant object
+    # iterate through every intersection and save the closest one and associate it with the relevant 3D object in our scene
     for idx, solution in enumerate(solutions):
       # keep the solution that has the closest distance to ray origin
       if solution and solution < nearest_solution:
@@ -93,12 +92,6 @@ def compute_color(ray, hit_data, scene, depth):
         # thus our attenuation can be based on, for instance, it's distance
         sqrt_dist = np.sqrt(length(l_dir))
         lightning += light.intensity / (4*np.pi*sqrt_dist) # Inverse-square law
-
-        # because of my broken logic for Planes,
-        # this isn't really possibly to calculate on planes at the moment
-        if type(geometry) is Sphere:
-          normal_ratio = clamp(np.dot(hit_data.normal, l_dir), 0.0, np.inf)
-          #lightning *= normal_ratio
         
     if depth > 0:
         reflected_ray = Ray(intersection_moved, normalize(reflect(intersection_moved, hit_data.normal)))

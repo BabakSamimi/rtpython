@@ -13,7 +13,7 @@ class App:
 
         self.window_width = int(window_width)
         self.window_height = int(window_height)
-        self.window_aspect_ratio = float(self.window_width/self.window_height)
+
         self.title = title
         self.running = True
         
@@ -28,14 +28,10 @@ class App:
         
         args = parser.parse_args()
         
-        self.viewport_width = int(args.width)
-        self.viewport_height = int(args.height)
-        self.viewport_aspect_ratio = float(self.viewport_width/self.viewport_height)
-        
         self.max_depth = args.max
         
         self.scene_path = args.scene if args.scene else None
-        self.scene = load_scene_file(self.scene_path) if self.scene_path else Scene()
+        self.scene = load_scene_file(self.scene_path) if self.scene_path else Scene(default=True)
         if self.scene_path:
             self.last_stamp = os.stat(self.scene_path).st_mtime
 
@@ -43,13 +39,20 @@ class App:
         self.screenshot = args.s
         self.headless = args.hm
 
+        self.viewport_width = args.width
+        self.viewport_height = args.height
+
     def __str__(self):
+        window_aspect_ratio = float(self.window_width/self.window_height)
+        
+        viewport_aspect_ratio = float(self.viewport_width/self.viewport_height)        
+        
         s = """ Application runtime:
         Window dimensions: {0}x{1}, aspect ratio: {2}/{3}
         Viewport dimensions: {4}x{5}, aspect ratio: {6}/{7}
         Window title: {8}
-        """.format(self.window_width, self.window_height, *Fraction(self.window_aspect_ratio).as_integer_ratio(),
-                   self.viewport_width, self.viewport_height, *Fraction(self.viewport_aspect_ratio).as_integer_ratio(),
+        """.format(self.window_width, self.window_height, *Fraction(window_aspect_ratio).as_integer_ratio(),
+                   self.viewport_width, self.viewport_height, *Fraction(viewport_aspect_ratio).as_integer_ratio(),
                    self.title)
         return s
 
@@ -126,7 +129,7 @@ class App:
 
 
 class Scene:
-    def __init__(self, default=True):
+    def __init__(self, default):
         self.objects = []
         self.lights = []
         
@@ -166,7 +169,7 @@ class Viewport:
         self.coordinates = [np.linspace(viewport[1], viewport[3], image_height), np.linspace(viewport[0], viewport[2], image_width)]
         
 class Camera:
-    def __init__(self, position, look_to, aspect_ratio, image_width, image_height):
+    def __init__(self, position, look_to, image_width, image_height):
         
         self.position = np.array(position)
         self.look_to = np.array(look_to)
@@ -175,5 +178,6 @@ class Camera:
         self.z = normalize(self.position - self.look_to) # unit vector at where we are looking
         self.x = normalize(np.cross(self.up, self.z))
         self.y = normalize(np.cross(self.z, self.x))
-        
+
+        aspect_ratio = image_width//image_height
         self.viewport = Viewport(aspect_ratio, image_width, image_height)
